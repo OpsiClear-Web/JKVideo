@@ -32,6 +32,9 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -45,7 +48,10 @@ yarn-error.*
 
 # Internal AI instructions & planning docs
 CLAUDE.md
-docs/
+docs/*
+!docs/GSAV_NATIVE_QA.md
+!docs/adr/
+!docs/adr/**
 feature.md
 livePlan.md
 Promotion.md

@@ -16,9 +16,9 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production",
-        "SENTRY_AUTH_TOKEN": "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",
-        "SENTRY_ORG": "your-org-slug",
-        "SENTRY_PROJECT": "your-project-slug"
+        "SENTRY_AUTH_TOKEN": "$SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG": "$SENTRY_ORG",
+        "SENTRY_PROJECT": "$SENTRY_PROJECT"
       }
     }
   },
