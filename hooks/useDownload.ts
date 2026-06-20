@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { useDownloadStore } from '../store/downloadStore';
 import { getPlayUrlForDownload } from '../services/bilibili';
+import { getSecure } from '../utils/secureStorage';
 
 const lastReportedProgress: Record<string, number> = {};
 
@@ -75,8 +76,13 @@ export function useDownload() {
     try {
       const [url, buvid3, sessdata] = await Promise.all([
         getPlayUrlForDownload(bvid, cid, qn),
+        // buvid3 is a non-sensitive device id, stored in AsyncStorage by design
+        // (generated in services/bilibili.ts). SESSDATA is the login credential
+        // and lives in SecureStore (authStore writes it via setSecure and removes
+        // the legacy AsyncStorage copy), so it MUST be read via getSecure — reading
+        // AsyncStorage here silently dropped auth on logged-in downloads.
         AsyncStorage.getItem('buvid3'),
-        AsyncStorage.getItem('SESSDATA'),
+        getSecure('SESSDATA'),
       ]);
       const dest = localPath(bvid, qn);
 
