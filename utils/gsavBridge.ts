@@ -26,7 +26,7 @@ export type GsavBridgeMessage =
   | { type: "GSAV_ROUTE_CHANGE"; payload: { path: string; search: string; embed: boolean } }
   | { type: "GSAV_PROGRESS"; payload: { videoId: string; fraction: number; percent: number } }
   | { type: "GSAV_FRAME"; payload: { videoId: string; currentTime: number; duration: number; frameIndex: number; totalFrames: number } }
-  | { type: "GSAV_FIRST_FRAME"; payload: { videoId: string; firstFrameMs: number } }
+  | { type: "GSAV_FIRST_FRAME"; payload: { videoId: string; currentTime?: number; duration?: number; frameIndex?: number; totalFrames?: number; firstFrameMs: number } }
   | { type: "GSAV_PLAYBACK_STATE"; payload: { videoId: string; state: "playing" | "paused" | "ended"; playing: boolean } }
   | { type: "GSAV_PLAY" | "GSAV_PAUSE" | "GSAV_ENDED" | "GSAV_DESTROY"; payload: { videoId: string } }
   | { type: string; payload?: unknown };
@@ -55,21 +55,27 @@ export type GsavPlaybackSnapshot = {
   lastEvent?: string;
 };
 
-export function getConfiguredGsavWebUrl() {
+/**
+ * Resolve the GSAV web origin for this build.
+ * - Configured (non-empty env)        -> that origin.
+ * - Dev with nothing set              -> the localhost default (dev convenience).
+ * - Production with nothing set       -> `null`.
+ *
+ * We deliberately do NOT fall back to localhost in a release build: a 127.0.0.1
+ * player is a dead player, so the shell must fail loud (render a "not configured"
+ * state) rather than silently ship it. (Empty string is treated as unset, covering
+ * a misconfigured/empty build env var.)
+ */
+export function getConfiguredGsavWebUrl(): string | null {
   const configured = process.env.EXPO_PUBLIC_GSAV_WEB_URL;
-  if (configured) return configured;
-  // No origin configured: fall back to the localhost dev default. In a production
-  // build this means the WebView would point at an unreachable 127.0.0.1, so warn
-  // loudly instead of silently shipping a dead player. (Empty string is treated as
-  // unset here, covering a misconfigured/empty build env var.)
+  if (configured && configured.trim() !== "") return configured;
   const isDev = typeof __DEV__ !== "undefined" && __DEV__;
-  if (!isDev) {
-    console.warn(
-      `[gsav] EXPO_PUBLIC_GSAV_WEB_URL is not set; falling back to ${DEFAULT_GSAV_WEB_URL}. ` +
-        "Production builds must set it to the real GSAV web origin.",
-    );
-  }
-  return DEFAULT_GSAV_WEB_URL;
+  if (isDev) return DEFAULT_GSAV_WEB_URL;
+  console.warn(
+    "[gsav] EXPO_PUBLIC_GSAV_WEB_URL is not set; GSAV player is unavailable in this build. " +
+      "Production builds must set it to the real GSAV web origin.",
+  );
+  return null;
 }
 
 /** expo-router params may be string | string[]; take the first value. */
@@ -85,10 +91,47 @@ export function getOrigin(uri: string) {
   }
 }
 
+/**
+ * Allowlist-positive navigation gate for the GSAV WebView. Returns true ONLY when
+ * the request URL parses to a non-empty origin that EXACTLY matches the single
+ * allowed origin. Non-origin schemes (about:, javascript:, intent:, tel:, data:,
+ * malformed) and a missing allowedOrigin all fail CLOSED. Callers should open real
+ * external http(s) links outside the WebView (Linking.openURL) rather than allow
+ * in-shell navigation.
+ *
+ *   isAllowedGsavNavigation                 allowedOrigin = "https://gsav.example"
+ *   ├─ "https://gsav.example/watch/x"  -> true   (exact origin match)
+ *   ├─ "https://evil.example/x"        -> false  (cross-origin)
+ *   ├─ "javascript:alert(1)" / "about:blank" -> false (no origin)
+ *   └─ allowedOrigin === ""            -> false  (fail closed)
+ */
+export function isAllowedGsavNavigation(url: string, allowedOrigin: string): boolean {
+  if (!allowedOrigin) return false;
+  const next = getOrigin(url);
+  return next !== "" && next === allowedOrigin;
+}
+
+/**
+ * Trust gate for incoming bridge messages. Drops messages whose reported origin
+ * does not match the allowed origin (e.g. a third-party iframe embedded in the
+ * GSAV page). When the platform does not report an origin we rely on the
+ * navigation gate above (the WebView can only have loaded the allowed origin).
+ * A missing allowlist fails CLOSED.
+ */
+export function isTrustedBridgeOrigin(
+  origin: string | undefined | null,
+  allowedOrigin: string,
+): boolean {
+  if (!allowedOrigin) return false;
+  if (origin == null || origin === "") return true;
+  return origin === allowedOrigin;
+}
+
 export function buildGsavWatchPath(
   sceneId: string,
   options: { startTime?: string; share?: string } = {},
 ) {
+  if (!sceneId) throw new Error("buildGsavWatchPath: sceneId must be a non-empty string");
   const route = `/watch/${encodeURIComponent(sceneId)}`;
   const search = new URLSearchParams();
   if (options.startTime) search.set("t", options.startTime);
@@ -97,7 +140,7 @@ export function buildGsavWatchPath(
   return query ? `${route}?${query}` : route;
 }
 
-export function buildNativeEmbedUrl(path: string, baseUrl = getConfiguredGsavWebUrl()) {
+export function buildNativeEmbedUrl(path: string, baseUrl: string) {
   const base = baseUrl.replace(/\/+$/, "");
   const route = path.startsWith("/") ? path : `/${path}`;
   const separator = route.includes("?") ? "&" : "?";

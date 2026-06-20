@@ -4,13 +4,15 @@ import {
   buildNativeCommandScript,
   buildNativeEmbedUrl,
   buildGsavWatchPath,
-  DEFAULT_GSAV_WEB_URL,
   firstParam,
   getBridgeStatusLabel,
   getCapabilityLabel,
   getConfiguredGsavWebUrl,
   getOrigin,
   getUnsupportedReason,
+  isAllowedGsavNavigation,
+  isGsavShellRoute,
+  isTrustedBridgeOrigin,
   parseBridgeMessage,
   updatePlaybackSnapshot,
 } from "./gsavBridge";
@@ -252,18 +254,137 @@ describe("getConfiguredGsavWebUrl", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("falls back to the dev default and warns loudly when unset (non-dev)", () => {
+  it("returns null and warns when unset in a non-dev build (no localhost fallback)", () => {
     delete process.env.EXPO_PUBLIC_GSAV_WEB_URL;
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    // __DEV__ is undefined under vitest, so the non-dev warning path runs.
-    expect(getConfiguredGsavWebUrl()).toBe(DEFAULT_GSAV_WEB_URL);
+    // __DEV__ is undefined under vitest, so the production path runs: fail loud.
+    expect(getConfiguredGsavWebUrl()).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("treats an empty string as unset and warns", () => {
+  it("treats an empty string as unset and returns null (non-dev)", () => {
     process.env.EXPO_PUBLIC_GSAV_WEB_URL = "";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(getConfiguredGsavWebUrl()).toBe(DEFAULT_GSAV_WEB_URL);
+    expect(getConfiguredGsavWebUrl()).toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("isAllowedGsavNavigation (WebView nav gate)", () => {
+  const allowed = "https://gsav.example";
+
+  it("allows exact same-origin navigation", () => {
+    expect(isAllowedGsavNavigation("https://gsav.example/watch/x?embed=native", allowed)).toBe(true);
+  });
+
+  it("blocks cross-origin and scheme-mismatched http(s)", () => {
+    expect(isAllowedGsavNavigation("https://evil.example/x", allowed)).toBe(false);
+    expect(isAllowedGsavNavigation("http://gsav.example/x", allowed)).toBe(false);
+  });
+
+  it("blocks non-origin schemes (about/javascript/tel/mailto)", () => {
+    for (const u of ["about:blank", "javascript:alert(1)", "tel:123", "mailto:a@b.c"]) {
+      expect(isAllowedGsavNavigation(u, allowed)).toBe(false);
+    }
+  });
+
+  it("blocks malformed URLs and fails closed with no allowed origin", () => {
+    expect(isAllowedGsavNavigation("not a url", allowed)).toBe(false);
+    expect(isAllowedGsavNavigation("https://gsav.example/x", "")).toBe(false);
+  });
+});
+
+describe("isTrustedBridgeOrigin (message trust gate)", () => {
+  const allowed = "https://gsav.example";
+
+  it("trusts a matching origin and drops a foreign one", () => {
+    expect(isTrustedBridgeOrigin("https://gsav.example", allowed)).toBe(true);
+    expect(isTrustedBridgeOrigin("https://evil.example", allowed)).toBe(false);
+  });
+
+  it("trusts when the platform reports no origin (relies on the nav gate)", () => {
+    expect(isTrustedBridgeOrigin("", allowed)).toBe(true);
+    expect(isTrustedBridgeOrigin(undefined, allowed)).toBe(true);
+    expect(isTrustedBridgeOrigin(null, allowed)).toBe(true);
+  });
+
+  it("fails closed when no allowed origin is configured", () => {
+    expect(isTrustedBridgeOrigin("https://gsav.example", "")).toBe(false);
+    expect(isTrustedBridgeOrigin("", "")).toBe(false);
+  });
+});
+
+describe("isGsavShellRoute", () => {
+  it("matches /gsav and /watch routes", () => {
+    expect(isGsavShellRoute("/gsav/elly")).toBe(true);
+    expect(isGsavShellRoute("/gsav-diagnostics")).toBe(true);
+    expect(isGsavShellRoute("/watch/elly")).toBe(true);
+  });
+
+  it("does not match legacy routes", () => {
+    expect(isGsavShellRoute("/")).toBe(false);
+    expect(isGsavShellRoute("/video/BV1")).toBe(false);
+    expect(isGsavShellRoute("/search")).toBe(false);
+  });
+});
+
+describe("buildGsavWatchPath edge cases", () => {
+  it("builds a bare path with no options and encodes the id", () => {
+    expect(buildGsavWatchPath("elly")).toBe("/watch/elly");
+    expect(buildGsavWatchPath("a/b c")).toBe("/watch/a%2Fb%20c");
+  });
+
+  it("throws on an empty scene id", () => {
+    expect(() => buildGsavWatchPath("")).toThrow();
+  });
+});
+
+describe("firstParam edge cases", () => {
+  it("returns undefined for an empty array", () => {
+    expect(firstParam([])).toBeUndefined();
+  });
+});
+
+describe("getCapabilityLabel renderer branches", () => {
+  it("labels wasm and passes through unknown renderers", () => {
+    expect(getCapabilityLabel({ supported: true, renderer: "wasm" })).toBe("WASM");
+    expect(getCapabilityLabel({ supported: true, renderer: "Vulkan" })).toBe("Vulkan");
+  });
+});
+
+describe("getBridgeStatusLabel remaining branches", () => {
+  it("labels capabilities and coarse playback, ignores noise and unknowns", () => {
+    expect(getBridgeStatusLabel({ type: "GSAV_CAPABILITIES", payload: { supported: true, renderer: "webgpu", reasons: [] } })).toBe("WebGPU");
+    expect(getBridgeStatusLabel({ type: "GSAV_PLAYBACK_STATE", payload: { videoId: "x", state: "playing", playing: true } })).toBe("Playing");
+    expect(getBridgeStatusLabel({ type: "GSAV_PLAYBACK_STATE", payload: { videoId: "x", state: "ended", playing: false } })).toBe("Ended");
+    expect(getBridgeStatusLabel({ type: "SOMETHING_ELSE", payload: {} })).toBeNull();
+  });
+});
+
+describe("updatePlaybackSnapshot remaining branches", () => {
+  it("captures capabilities renderer", () => {
+    expect(
+      updatePlaybackSnapshot({}, { type: "GSAV_CAPABILITIES", payload: { supported: true, renderer: "webgl2", reasons: [] } }),
+    ).toMatchObject({ renderer: "webgl2", lastEvent: "GSAV_CAPABILITIES" });
+  });
+
+  it("captures GSAV_FRAME timing without marking the first frame", () => {
+    const s = updatePlaybackSnapshot({}, {
+      type: "GSAV_FRAME",
+      payload: { videoId: "x", currentTime: 3, duration: 9, frameIndex: 2, totalFrames: 10 },
+    });
+    expect(s).toMatchObject({ currentTime: 3, duration: 9, frameIndex: 2, totalFrames: 10 });
+    expect(s.firstFrameMs).toBeUndefined();
+  });
+
+  it("tracks pause and ended states", () => {
+    expect(updatePlaybackSnapshot({ state: "playing" }, { type: "GSAV_PAUSE", payload: { videoId: "x" } }).state).toBe("paused");
+    expect(updatePlaybackSnapshot({ state: "playing" }, { type: "GSAV_ENDED", payload: { videoId: "x" } }).state).toBe("ended");
+  });
+
+  it("records the event for unknown message types without other changes", () => {
+    expect(
+      updatePlaybackSnapshot({ state: "playing" }, { type: "GSAV_ROUTE_CHANGE", payload: { path: "/watch/x", search: "", embed: true } }),
+    ).toMatchObject({ state: "playing", lastEvent: "GSAV_ROUTE_CHANGE" });
   });
 });

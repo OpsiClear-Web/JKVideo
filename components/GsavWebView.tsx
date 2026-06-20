@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -23,6 +24,8 @@ import {
   getConfiguredGsavWebUrl,
   getOrigin,
   getUnsupportedReason,
+  isAllowedGsavNavigation,
+  isTrustedBridgeOrigin,
   type GsavPlaybackSnapshot,
   type NativeGsavCommand,
   parseBridgeMessage,
@@ -49,8 +52,10 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
   const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [capabilityLabel, setCapabilityLabel] = useState("Checking");
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const uri = useMemo(() => buildNativeEmbedUrl(path, gsavWebUrl), [gsavWebUrl, path]);
-  const allowedOrigin = useMemo(() => getOrigin(gsavWebUrl), [gsavWebUrl]);
+  const uri = useMemo(() => (gsavWebUrl ? buildNativeEmbedUrl(path, gsavWebUrl) : ""), [gsavWebUrl, path]);
+  // Empty when the build has no URL OR the configured URL is malformed; either way
+  // the WebView is not rendered and the "not configured" panel shows instead.
+  const allowedOrigin = useMemo(() => (gsavWebUrl ? getOrigin(gsavWebUrl) : ""), [gsavWebUrl]);
 
   const sendCommand = useCallback((command: NativeGsavCommand) => {
     webViewRef.current?.injectJavaScript(buildNativeCommandScript(command));
@@ -65,6 +70,10 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
   }, [syncNativeTheme, loadKey]);
 
   function handleBridgeMessage(event: WebViewMessageEvent) {
+    // Trust gate: only act on messages from the allowed origin. nativeEvent.url is
+    // the WebView's current page; together with the navigation gate below this drops
+    // anything not served from the configured GSAV origin.
+    if (!isTrustedBridgeOrigin(getOrigin(event.nativeEvent.url), allowedOrigin)) return;
     const message = parseBridgeMessage(event.nativeEvent.data);
     if (!message) return;
     const snapshot = (playbackSnapshotRef.current = updatePlaybackSnapshot(
@@ -135,52 +144,69 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
       </View>
 
       <View style={styles.content}>
-        <WebView
-          key={loadKey}
-          ref={webViewRef}
-          source={{ uri }}
-          originWhitelist={allowedOrigin ? [allowedOrigin] : ["*"]}
-          javaScriptEnabled
-          domStorageEnabled
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          androidLayerType="hardware"
-          setSupportMultipleWindows={false}
-          mixedContentMode={Platform.OS === "android" ? "compatibility" : undefined}
-          onShouldStartLoadWithRequest={(request) => {
-            const nextOrigin = getOrigin(request.url);
-            return !nextOrigin || !allowedOrigin || nextOrigin === allowedOrigin;
-          }}
-          onLoadStart={() => {
-            setLoading(true);
-            setLoadError(null);
-          }}
-          onLoadEnd={() => {
-            setLoading(false);
-            syncNativeTheme();
-          }}
-          onError={(event) => {
-            setLoading(false);
-            setLoadError(event.nativeEvent.description || "Unable to load GSAV web player.");
-          }}
-          onMessage={handleBridgeMessage}
-          style={styles.webView}
-        />
-
-        {loading && (
-          <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator color={GSAV_ACCENT} />
-          </View>
-        )}
-
-        {Boolean(loadError) && (
+        {!allowedOrigin ? (
           <View style={[styles.errorPanel, { backgroundColor: theme.card }]}>
-            <Text style={[styles.errorTitle, { color: theme.text }]}>GSAV player unavailable</Text>
-            <Text style={[styles.errorText, { color: theme.textSub }]}>{loadError}</Text>
-            <Pressable style={styles.retryButton} onPress={retry}>
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
+            <Text style={[styles.errorTitle, { color: theme.text }]}>GSAV not configured</Text>
+            <Text style={[styles.errorText, { color: theme.textSub }]}>
+              This build has no valid GSAV web origin. Set EXPO_PUBLIC_GSAV_WEB_URL to the GSAV web
+              app origin and rebuild.
+            </Text>
           </View>
+        ) : (
+          <>
+            <WebView
+              key={loadKey}
+              ref={webViewRef}
+              source={{ uri }}
+              originWhitelist={[allowedOrigin]}
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              androidLayerType="hardware"
+              setSupportMultipleWindows={false}
+              mixedContentMode={Platform.OS === "android" ? (__DEV__ ? "compatibility" : "never") : undefined}
+              onShouldStartLoadWithRequest={(request) => {
+                if (isAllowedGsavNavigation(request.url, allowedOrigin)) return true;
+                // Open genuine external http(s) links in the system browser instead
+                // of navigating the shell; silently refuse everything else.
+                if (/^https?:/i.test(request.url) && getOrigin(request.url) !== "") {
+                  Linking.openURL(request.url).catch(() => {});
+                }
+                return false;
+              }}
+              onLoadStart={() => {
+                setLoading(true);
+                setLoadError(null);
+              }}
+              onLoadEnd={() => {
+                setLoading(false);
+                syncNativeTheme();
+              }}
+              onError={(event) => {
+                setLoading(false);
+                setLoadError(event.nativeEvent.description || "Unable to load GSAV web player.");
+              }}
+              onMessage={handleBridgeMessage}
+              style={styles.webView}
+            />
+
+            {loading && (
+              <View style={styles.loadingOverlay} pointerEvents="none">
+                <ActivityIndicator color={GSAV_ACCENT} />
+              </View>
+            )}
+
+            {Boolean(loadError) && (
+              <View style={[styles.errorPanel, { backgroundColor: theme.card }]}>
+                <Text style={[styles.errorTitle, { color: theme.text }]}>GSAV player unavailable</Text>
+                <Text style={[styles.errorText, { color: theme.textSub }]}>{loadError}</Text>
+                <Pressable style={styles.retryButton} onPress={retry}>
+                  <Text style={styles.retryText}>Retry</Text>
+                </Pressable>
+              </View>
+            )}
+          </>
         )}
       </View>
 
