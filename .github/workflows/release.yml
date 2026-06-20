@@ -12,6 +12,17 @@ jobs:
     permissions:
       contents: write
 
+    # Production env for the raw prebuild + Gradle build (this pipeline does NOT
+    # use `eas build`, so eas.json env never applies). EXPO_PUBLIC_APP_ENV flips
+    # android.usesCleartextTraffic=false at prebuild (app.config.js); the
+    # EXPO_PUBLIC_* values are inlined into the JS bundle during assembleRelease.
+    # GSAV_WEB_URL / SENTRY_DSN come from repo secrets (empty until configured —
+    # an empty GSAV URL falls back to the dev default with a loud warn).
+    env:
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_GSAV_WEB_URL: ${{ secrets.GSAV_WEB_URL }}
+      EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,6 +38,13 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Advisory until the production GSAV origin is configured (P2-4). Currently
+      # exits non-zero because EXPO_PUBLIC_GSAV_WEB_URL is unset — do NOT make this
+      # required (continue-on-error) or it would block every release today.
+      - name: Verify native production config (advisory)
+        continue-on-error: true
+        run: npm run verify:native-production-config
 
       - name: Bump version
         id: bump
