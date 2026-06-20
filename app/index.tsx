@@ -17,6 +17,7 @@ import {
   ViewToken,
   FlatList,
   ScrollView,
+  type ImageStyle,
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import {
@@ -39,7 +40,7 @@ import {
 } from "../utils/videoRows";
 import { BigVideoCard } from "../components/BigVideoCard";
 import { FollowedLiveStrip } from "../components/FollowedLiveStrip";
-import { useTheme } from "../utils/theme";
+import { type ThemeColors, useTheme } from "../utils/theme";
 import { useVisibleBigKeyStore } from "../store/visibleBigKeyStore";
 import type { LiveRoom } from "../services/types";
 
@@ -67,6 +68,44 @@ const LIVE_AREAS = [
   { id: 11, name: "知识" },
 ];
 
+function GsavHomeEntry({
+  theme,
+  onOpen,
+  onDiagnostics,
+}: {
+  theme: ThemeColors;
+  onOpen: () => void;
+  onDiagnostics: () => void;
+}) {
+  return (
+    <View style={[styles.gsavEntry, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={styles.gsavMark}>
+        <Ionicons name="cube-outline" size={18} color="#2f7f80" />
+      </View>
+      <View style={styles.gsavCopy}>
+        <Text numberOfLines={1} style={[styles.gsavTitle, { color: theme.text }]}>GSAV 4D</Text>
+        <Text numberOfLines={1} style={[styles.gsavSubtitle, { color: theme.textSub }]}>4D Gaussian video</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.gsavIconButton}
+        onPress={onOpen}
+        activeOpacity={0.75}
+        accessibilityLabel="Open GSAV test scene"
+      >
+        <Ionicons name="play" size={16} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.gsavIconButton, styles.gsavSecondaryButton]}
+        onPress={onDiagnostics}
+        activeOpacity={0.75}
+        accessibilityLabel="Open GSAV diagnostics"
+      >
+        <Ionicons name="pulse-outline" size={16} color="#2f7f80" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { pages, loading, refreshing, load, refresh } = useVideoList();
@@ -89,6 +128,14 @@ export default function HomeScreen() {
 
   const hotListRef = useRef<FlatList>(null);
   const liveListRef = useRef<FlatList>(null);
+
+  const openGsavTest = useCallback(() => {
+    router.push("/watch/test" as any);
+  }, [router]);
+
+  const openGsavDiagnostics = useCallback(() => {
+    router.push("/gsav-diagnostics" as any);
+  }, [router]);
 
   const onViewableItemsChangedRef = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -352,6 +399,13 @@ export default function HomeScreen() {
             onEndReachedThreshold={0.5}
             viewabilityConfig={VIEWABILITY_CONFIG}
             onViewableItemsChanged={onViewableItemsChangedRef}
+            ListHeaderComponent={
+              <GsavHomeEntry
+                theme={theme}
+                onOpen={openGsavTest}
+                onDiagnostics={openGsavDiagnostics}
+              />
+            }
             ListFooterComponent={
               <View style={styles.footer}>
                 {loading && <ActivityIndicator color="#00AEEC" />}
@@ -462,7 +516,7 @@ export default function HomeScreen() {
               onPress={() => (isLoggedIn ? router.push('/settings' as any) : setShowLogin(true))}
             >
               {isLoggedIn && face ? (
-                <Image source={{ uri: face }} style={styles.userAvatar} />
+                <Image source={{ uri: face }} style={styles.userAvatar as ImageStyle} />
               ) : (
                 <Ionicons
                   name={isLoggedIn ? "person" : "person-outline"}
@@ -585,7 +639,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-    fontWeight: "450",
+    fontWeight: "400",
     color: "#999",
   },
   tabTextActive: {
@@ -640,5 +694,47 @@ const styles = StyleSheet.create({
   areaTabTextActive: {
     color: "#fff",
     fontWeight: "600",
+  },
+  gsavEntry: {
+    minHeight: 56,
+    marginHorizontal: 8,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  gsavMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(47, 127, 128, 0.12)",
+  },
+  gsavCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  gsavTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  gsavSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+  },
+  gsavIconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2f7f80",
+  },
+  gsavSecondaryButton: {
+    backgroundColor: "rgba(47, 127, 128, 0.12)",
   },
 });

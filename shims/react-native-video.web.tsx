@@ -23,16 +23,16 @@ const Video = React.forwardRef<HTMLVideoElement, VideoProps>(
         ref={ref}
         src={uri}
         style={style as React.CSSProperties}
-        autoPlay={!paused}
-        muted={muted}
-        loop={repeat}
-        onLoadedData={onLoad ? () => onLoad({}) : undefined}
-        onError={onError ? (e) => onError(e) : undefined}
-        onTimeUpdate={onProgress ? (e) => {
+        autoPlay={paused !== true}
+        muted={muted === true}
+        loop={repeat === true}
+        onLoadedData={typeof onLoad === 'function' ? () => onLoad({}) : undefined}
+        onError={typeof onError === 'function' ? (e) => onError(e) : undefined}
+        onTimeUpdate={typeof onProgress === 'function' ? (e) => {
           const t = e.currentTarget;
           onProgress({ currentTime: t.currentTime, seekableDuration: t.duration });
         } : undefined}
-        onEnded={onEnd}
+        onEnded={typeof onEnd === 'function' ? () => onEnd() : undefined}
         playsInline
       />
     );

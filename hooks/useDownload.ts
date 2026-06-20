@@ -29,7 +29,7 @@ function isBackground() {
 /** 读取本地文件实际大小 */
 async function readFileSize(uri: string): Promise<number | undefined> {
   try {
-    const info = await FileSystem.getInfoAsync(uri, { size: true });
+    const info = await FileSystem.getInfoAsync(uri);
     if (info.exists) return (info as any).size as number;
   } catch {}
   return undefined;
@@ -116,7 +116,7 @@ export function useDownload() {
       let result: FileSystem.DownloadResult | null = null;
 
       try {
-        result = await resumable.downloadAsync();
+        result = await resumable.downloadAsync() ?? null;
       } catch (e: any) {
         // downloadAsync 抛出：多为后台断连（connection abort）或被 pauseAsync 中断
         if (!isBackground() && !bgPaused) {
@@ -140,7 +140,7 @@ export function useDownload() {
 
         // 尝试从断点续传
         try {
-          result = await resumable.resumeAsync();
+          result = await resumable.resumeAsync() ?? null;
         } catch {
           result = null;
         }

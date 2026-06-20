@@ -117,6 +117,52 @@ npx expo start --web
 
 > Web requires a local proxy server for image anti-hotlinking: `node scripts/proxy.js` (port 3001)
 
+### GSAV WebView Wrapper
+
+JKVideo can host the GSAV hosting web app as a thin native shell. The product
+web app lives in `../gsav-hosting/apps/web`; JKVideo only owns WebView loading,
+retry, back navigation, and bridge message handling. Set the web app origin
+before starting Expo.
+
+Start the local GSAV hosting preview first:
+
+```bash
+cd ../gsav-hosting
+npm run smoke:web:local
+```
+
+Then start JKVideo against that local preview:
+
+```bash
+EXPO_PUBLIC_GSAV_WEB_URL=http://127.0.0.1:5191 npx expo start
+```
+
+For Android emulator testing, use the Android host alias:
+
+```bash
+EXPO_PUBLIC_GSAV_WEB_URL=http://10.0.2.2:5191 npx expo run:android
+```
+
+Routes:
+
+- `/watch/:id` opens `GSAV_WEB_URL/watch/:id?embed=native`
+- `/gsav/:id` is an alias for GSAV scenes
+- `/gsav-diagnostics` opens the native diagnostics page
+
+The native app only owns WebView loading, retry, back navigation, and bridge
+message handling. Catalog, CDN URLs, controls, and playback stay in
+`gsav-hosting/apps/web`.
+
+Native device QA is documented in [docs/GSAV_NATIVE_QA.md](docs/GSAV_NATIVE_QA.md).
+
+Native GSAV shell checks:
+
+```bash
+npm run gsav:preflight
+npx tsc --noEmit
+npm test
+```
+
 ### Direct Install (Android)
 
 Download the latest APK from [Releases](https://github.com/tiajinsha/JKVideo/releases/latest) — no build needed.

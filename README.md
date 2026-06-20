@@ -133,6 +133,48 @@ npx expo start --web
 
 > Web 端图片需本地代理服务器绕过防盗链：`node scripts/proxy.js`（端口 3001）
 
+### GSAV Native Shell
+
+JKVideo can host the GSAV hosting web app as a thin native shell. GSAV catalog,
+CDN/R2 URLs, controls, and playback stay in `../gsav-hosting/apps/web`;
+JKVideo only owns native routing, WebView loading, retry, back navigation, and
+bridge messages.
+
+Start the local GSAV hosting preview first:
+
+```bash
+cd ../gsav-hosting
+npm run smoke:web:local
+```
+
+Then start JKVideo against that local preview:
+
+```bash
+EXPO_PUBLIC_GSAV_WEB_URL=http://127.0.0.1:5191 npx expo start
+```
+
+For Android emulator testing:
+
+```bash
+EXPO_PUBLIC_GSAV_WEB_URL=http://10.0.2.2:5191 npx expo run:android
+```
+
+Routes:
+
+- `/watch/:id` opens `GSAV_WEB_URL/watch/:id?embed=native`
+- `/gsav/:id` is a GSAV scene alias
+- `/gsav-diagnostics` opens the native diagnostics page
+
+Native device QA is documented in [docs/GSAV_NATIVE_QA.md](docs/GSAV_NATIVE_QA.md).
+
+Local GSAV shell checks:
+
+```bash
+npm run gsav:preflight
+npx tsc --noEmit
+npm test
+```
+
 ### 直接安装（Android）
 
 前往 [Releases](https://github.com/tiajinsha/JKVideo/releases/latest) 下载最新 APK，无需编译，安装即用。

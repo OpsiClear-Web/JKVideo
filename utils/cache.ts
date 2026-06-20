@@ -10,7 +10,7 @@ async function dirSize(dirUri: string): Promise<number> {
     let total = 0;
     for (const entry of entries) {
       const entryUri = dirUri.endsWith('/') ? `${dirUri}${entry}` : `${dirUri}/${entry}`;
-      const entryInfo = await FileSystem.getInfoAsync(entryUri, { size: true });
+      const entryInfo = await FileSystem.getInfoAsync(entryUri);
       if (!entryInfo.exists) continue;
       if (entryInfo.isDirectory) {
         total += await dirSize(entryUri);

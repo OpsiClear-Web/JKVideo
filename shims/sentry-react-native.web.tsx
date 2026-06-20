@@ -2,7 +2,7 @@
 import React from 'react';
 
 export const init = (_options?: unknown) => {};
-export const wrap = <T>(component: T): T => component;
+export const wrap = <T,>(component: T): T => component;
 export const captureException = (_error: unknown, _hint?: unknown) => '';
 export const captureMessage = (_message: string, _level?: unknown) => '';
 export const setUser = (_user: unknown) => {};

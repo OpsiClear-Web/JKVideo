@@ -1,0 +1,254 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView, type WebViewMessageEvent } from "react-native-webview";
+
+import {
+  buildNativeCommandScript,
+  buildNativeEmbedUrl,
+  getBridgeStatusLabel,
+  getCapabilityLabel,
+  getConfiguredGsavWebUrl,
+  getOrigin,
+  getUnsupportedReason,
+  type GsavPlaybackSnapshot,
+  type NativeGsavCommand,
+  parseBridgeMessage,
+  updatePlaybackSnapshot,
+} from "../utils/gsavBridge";
+import { useSettingsStore } from "../store/settingsStore";
+import { useTheme } from "../utils/theme";
+
+type GsavWebViewProps = {
+  path: string;
+  title: string;
+};
+
+export function GsavWebView({ path, title }: GsavWebViewProps) {
+  const router = useRouter();
+  const theme = useTheme();
+  const darkMode = useSettingsStore((state) => state.darkMode);
+  const webViewRef = useRef<WebView>(null);
+  const playbackSnapshotRef = useRef<GsavPlaybackSnapshot>({});
+  const gsavWebUrl = useMemo(() => getConfiguredGsavWebUrl(), []);
+  const [loadKey, setLoadKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [capabilityLabel, setCapabilityLabel] = useState("Checking");
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const uri = useMemo(() => buildNativeEmbedUrl(path, gsavWebUrl), [gsavWebUrl, path]);
+  const allowedOrigin = useMemo(() => getOrigin(gsavWebUrl), [gsavWebUrl]);
+
+  const sendCommand = useCallback((command: NativeGsavCommand) => {
+    webViewRef.current?.injectJavaScript(buildNativeCommandScript(command));
+  }, []);
+
+  const syncNativeTheme = useCallback(() => {
+    sendCommand({ command: "setTheme", mode: darkMode ? "dark" : "light" });
+  }, [darkMode, sendCommand]);
+
+  useEffect(() => {
+    syncNativeTheme();
+  }, [syncNativeTheme, loadKey]);
+
+  function handleBridgeMessage(event: WebViewMessageEvent) {
+    const message = parseBridgeMessage(event.nativeEvent.data);
+    if (!message) return;
+    playbackSnapshotRef.current = updatePlaybackSnapshot(playbackSnapshotRef.current, message);
+    const nextStatus = getBridgeStatusLabel(message);
+    if (nextStatus) setCapabilityLabel(nextStatus);
+
+    if (message.type === "GSAV_ERROR") {
+      const payload = message.payload as { message?: unknown };
+      setBridgeError(typeof payload.message === "string" ? payload.message : "GSAV playback error.");
+    } else if (message.type === "GSAV_READY") {
+      setBridgeError(null);
+      syncNativeTheme();
+    } else if (message.type === "GSAV_CAPABILITIES") {
+      const payload = message.payload as { supported?: unknown; renderer?: unknown; reasons?: unknown };
+      const supported = payload.supported === true;
+      setCapabilityLabel(getCapabilityLabel(payload));
+      if (!supported) {
+        setBridgeError(getUnsupportedReason(payload) ?? "GSAV playback is not supported on this device.");
+      } else {
+        setBridgeError(null);
+        syncNativeTheme();
+      }
+    }
+  }
+
+  async function copyCurrentUrl() {
+    await Clipboard.setStringAsync(uri);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 1200);
+  }
+
+  function retry() {
+    setLoadError(null);
+    setBridgeError(null);
+    setLoading(true);
+    setLoadKey((value) => value + 1);
+  }
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={["top", "left", "right"]}>
+      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <Pressable style={styles.headerButton} onPress={() => router.back()} accessibilityLabel="Back">
+          <Ionicons name="chevron-back" size={22} color={theme.text} />
+        </Pressable>
+        <View style={styles.brandMark}>
+          <Ionicons name="cube-outline" size={16} color="#2f7f80" />
+        </View>
+        <View style={styles.headerTitle}>
+          <Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{title}</Text>
+          <Text numberOfLines={1} style={[styles.subtitle, { color: theme.textSub }]}>{capabilityLabel}</Text>
+        </View>
+        {__DEV__ && (
+          <Pressable style={styles.headerButton} onPress={copyCurrentUrl} accessibilityLabel="Copy GSAV URL">
+            <Ionicons name={copiedUrl ? "checkmark" : "copy-outline"} size={18} color={theme.text} />
+          </Pressable>
+        )}
+        <Pressable style={styles.headerButton} onPress={retry} accessibilityLabel="Reload GSAV player">
+          <Ionicons name="refresh" size={19} color={theme.text} />
+        </Pressable>
+      </View>
+
+      <View style={styles.content}>
+        <WebView
+          key={loadKey}
+          ref={webViewRef}
+          source={{ uri }}
+          originWhitelist={allowedOrigin ? [allowedOrigin] : ["*"]}
+          javaScriptEnabled
+          domStorageEnabled
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          androidLayerType="hardware"
+          setSupportMultipleWindows={false}
+          mixedContentMode={Platform.OS === "android" ? "compatibility" : undefined}
+          onShouldStartLoadWithRequest={(request) => {
+            const nextOrigin = getOrigin(request.url);
+            return !nextOrigin || !allowedOrigin || nextOrigin === allowedOrigin;
+          }}
+          onLoadStart={() => {
+            setLoading(true);
+            setLoadError(null);
+          }}
+          onLoadEnd={() => {
+            setLoading(false);
+            syncNativeTheme();
+          }}
+          onError={(event) => {
+            setLoading(false);
+            setLoadError(event.nativeEvent.description || "Unable to load GSAV web player.");
+          }}
+          onMessage={handleBridgeMessage}
+          style={styles.webView}
+        />
+
+        {loading && (
+          <View style={styles.loadingOverlay} pointerEvents="none">
+            <ActivityIndicator color="#2f7f80" />
+          </View>
+        )}
+
+        {Boolean(loadError) && (
+          <View style={[styles.errorPanel, { backgroundColor: theme.card }]}>
+            <Text style={[styles.errorTitle, { color: theme.text }]}>GSAV player unavailable</Text>
+            <Text style={[styles.errorText, { color: theme.textSub }]}>{loadError}</Text>
+            <Pressable style={styles.retryButton} onPress={retry}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+
+      {Boolean(bridgeError) && !loadError && (
+        <View style={[styles.bridgeBanner, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+          <Text numberOfLines={2} style={[styles.bridgeText, { color: theme.textSub }]}>{bridgeError}</Text>
+          <Pressable onPress={() => sendCommand({ command: "play" })} accessibilityLabel="Play GSAV">
+            <Ionicons name="play" size={18} color="#2f7f80" />
+          </Pressable>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  header: {
+    height: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandMark: {
+    width: 30,
+    height: 30,
+    marginRight: 8,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(47, 127, 128, 0.12)",
+  },
+  headerTitle: { flex: 1, minWidth: 0 },
+  title: { fontSize: 16, fontWeight: "700" },
+  subtitle: { marginTop: 1, fontSize: 11 },
+  content: { flex: 1, backgroundColor: "#050505" },
+  webView: { flex: 1, backgroundColor: "#050505" },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.18)",
+  },
+  errorPanel: {
+    position: "absolute",
+    left: 18,
+    right: 18,
+    top: "34%",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  errorTitle: { fontSize: 16, fontWeight: "800" },
+  errorText: { marginTop: 8, textAlign: "center", lineHeight: 19 },
+  retryButton: {
+    minWidth: 88,
+    minHeight: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+    backgroundColor: "#2f7f80",
+    borderRadius: 8,
+  },
+  retryText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  bridgeBanner: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  bridgeText: { flex: 1, fontSize: 12, lineHeight: 17 },
+});

@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
@@ -28,6 +28,8 @@ function RootLayout() {
   const loadDownloads = useDownloadStore(s => s.loadFromStorage);
   const restoreSettings = useSettingsStore(s => s.restore);
   const darkMode = useSettingsStore(s => s.darkMode);
+  const pathname = usePathname();
+  const gsavShellActive = pathname.startsWith('/gsav') || pathname.startsWith('/watch');
 
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
@@ -97,10 +99,34 @@ function RootLayout() {
                 gestureDirection: "horizontal",
               }}
             />
+            <Stack.Screen
+              name="gsav"
+              options={{
+                animation: "slide_from_right",
+                gestureEnabled: true,
+                gestureDirection: "horizontal",
+              }}
+            />
+            <Stack.Screen
+              name="gsav-diagnostics"
+              options={{
+                animation: "slide_from_right",
+                gestureEnabled: true,
+                gestureDirection: "horizontal",
+              }}
+            />
+            <Stack.Screen
+              name="watch"
+              options={{
+                animation: "slide_from_right",
+                gestureEnabled: true,
+                gestureDirection: "horizontal",
+              }}
+            />
           </Stack>
         </ErrorBoundary>
-        <MiniPlayer />
-        <LiveMiniPlayer />
+        {!gsavShellActive && <MiniPlayer />}
+        {!gsavShellActive && <LiveMiniPlayer />}
       </View>
     </SafeAreaProvider>
   );

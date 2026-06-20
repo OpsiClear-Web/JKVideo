@@ -562,12 +562,13 @@ export const NativeVideoPlayer = forwardRef<NativeVideoPlayerRef, Props>(
 
         {/* poster 挡片：<Video> 已挂载但首帧未到达时显示封面 */}
         {!!resolvedUrl && coverVisible && !!coverUrl && (
-          <Image
-            source={{ uri: coverUrl }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            pointerEvents="none"
-          />
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Image
+              source={{ uri: coverUrl }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          </View>
         )}
 
         {switching && (
