@@ -2,6 +2,15 @@ export const DEFAULT_GSAV_WEB_URL = "http://127.0.0.1:5191";
 export const GSAV_NATIVE_BRIDGE_VERSION = 1;
 export const GSAV_NATIVE_BRIDGE_MIN_VERSION = 1;
 
+/** GSAV brand accent and its derived 12% tint, shared across the native shell UI. */
+export const GSAV_ACCENT = "#2f7f80";
+export const GSAV_ACCENT_TINT = "rgba(47, 127, 128, 0.12)";
+
+/** Routes that render the full-screen GSAV WebView shell (mini-players hidden). */
+export function isGsavShellRoute(pathname: string): boolean {
+  return pathname.startsWith("/gsav") || pathname.startsWith("/watch");
+}
+
 export type GsavBridgeInfo = {
   version: number;
   minVersion: number;
@@ -11,7 +20,7 @@ export type GsavBridgeInfo = {
 
 export type GsavBridgeMessage =
   | { type: "GSAV_BRIDGE_READY"; payload: GsavBridgeInfo }
-  | { type: "GSAV_READY"; payload: { videoId: string; title: string } }
+  | { type: "GSAV_READY"; payload: { videoId: string; title: string; renderer?: string } }
   | { type: "GSAV_ERROR"; payload: { message: string } }
   | { type: "GSAV_CAPABILITIES"; payload: { supported: boolean; renderer: string; reasons: string[] } }
   | { type: "GSAV_ROUTE_CHANGE"; payload: { path: string; search: string; embed: boolean } }

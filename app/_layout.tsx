@@ -8,6 +8,7 @@ import { useDownloadStore } from '../store/downloadStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { usePlayProgressStore } from '../store/playProgressStore';
 import { initMiniExclusion } from '../store/miniExclusion';
+import { isGsavShellRoute } from '../utils/gsavBridge';
 import { useTheme } from '../utils/theme';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { LiveMiniPlayer } from '../components/LiveMiniPlayer';
@@ -29,7 +30,7 @@ function RootLayout() {
   const restoreSettings = useSettingsStore(s => s.restore);
   const darkMode = useSettingsStore(s => s.darkMode);
   const pathname = usePathname();
-  const gsavShellActive = pathname.startsWith('/gsav') || pathname.startsWith('/watch');
+  const gsavShellActive = isGsavShellRoute(pathname);
 
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,

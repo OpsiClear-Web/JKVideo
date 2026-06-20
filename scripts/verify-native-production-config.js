@@ -115,9 +115,8 @@ function validateNativeProductionConfig({ appConfig, easConfig, packageJson, env
     warnings.push("EAS production profile should set EXPO_PUBLIC_APP_ENV=production.");
   }
 
-  if (easConfig?.build?.production && !productionEnv.EXPO_PUBLIC_GSAV_WEB_URL && !env.EXPO_PUBLIC_GSAV_WEB_URL) {
-    errors.push("EAS production profile must provide EXPO_PUBLIC_GSAV_WEB_URL or the release environment must set it.");
-  }
+  // (The missing-URL case is already covered by the `!gsavUrl` check above,
+  // which merges the env and EAS-profile sources via productionGsavUrl.)
 
   return {
     ok: errors.length === 0,

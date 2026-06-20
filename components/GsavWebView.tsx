@@ -16,6 +16,8 @@ import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import {
   buildNativeCommandScript,
   buildNativeEmbedUrl,
+  GSAV_ACCENT,
+  GSAV_ACCENT_TINT,
   getBridgeStatusLabel,
   getCapabilityLabel,
   getConfiguredGsavWebUrl,
@@ -108,7 +110,7 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </Pressable>
         <View style={styles.brandMark}>
-          <Ionicons name="cube-outline" size={16} color="#2f7f80" />
+          <Ionicons name="cube-outline" size={16} color={GSAV_ACCENT} />
         </View>
         <View style={styles.headerTitle}>
           <Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{title}</Text>
@@ -159,7 +161,7 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
 
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator color="#2f7f80" />
+            <ActivityIndicator color={GSAV_ACCENT} />
           </View>
         )}
 
@@ -178,7 +180,7 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
         <View style={[styles.bridgeBanner, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
           <Text numberOfLines={2} style={[styles.bridgeText, { color: theme.textSub }]}>{bridgeError}</Text>
           <Pressable onPress={() => sendCommand({ command: "play" })} accessibilityLabel="Play GSAV">
-            <Ionicons name="play" size={18} color="#2f7f80" />
+            <Ionicons name="play" size={18} color={GSAV_ACCENT} />
           </Pressable>
         </View>
       )}
@@ -208,7 +210,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(47, 127, 128, 0.12)",
+    backgroundColor: GSAV_ACCENT_TINT,
   },
   headerTitle: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: "700" },
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 14,
-    backgroundColor: "#2f7f80",
+    backgroundColor: GSAV_ACCENT,
     borderRadius: 8,
   },
   retryText: { color: "#fff", fontSize: 13, fontWeight: "800" },

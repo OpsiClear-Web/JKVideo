@@ -41,6 +41,7 @@ import {
 import { BigVideoCard } from "../components/BigVideoCard";
 import { FollowedLiveStrip } from "../components/FollowedLiveStrip";
 import { type ThemeColors, useTheme } from "../utils/theme";
+import { GSAV_ACCENT, GSAV_ACCENT_TINT } from "../utils/gsavBridge";
 import { useVisibleBigKeyStore } from "../store/visibleBigKeyStore";
 import type { LiveRoom } from "../services/types";
 
@@ -80,7 +81,7 @@ function GsavHomeEntry({
   return (
     <View style={[styles.gsavEntry, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.gsavMark}>
-        <Ionicons name="cube-outline" size={18} color="#2f7f80" />
+        <Ionicons name="cube-outline" size={18} color={GSAV_ACCENT} />
       </View>
       <View style={styles.gsavCopy}>
         <Text numberOfLines={1} style={[styles.gsavTitle, { color: theme.text }]}>GSAV 4D</Text>
@@ -100,7 +101,7 @@ function GsavHomeEntry({
         activeOpacity={0.75}
         accessibilityLabel="Open GSAV diagnostics"
       >
-        <Ionicons name="pulse-outline" size={16} color="#2f7f80" />
+        <Ionicons name="pulse-outline" size={16} color={GSAV_ACCENT} />
       </TouchableOpacity>
     </View>
   );
@@ -712,7 +713,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(47, 127, 128, 0.12)",
+    backgroundColor: GSAV_ACCENT_TINT,
   },
   gsavCopy: {
     flex: 1,
@@ -732,9 +733,9 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2f7f80",
+    backgroundColor: GSAV_ACCENT,
   },
   gsavSecondaryButton: {
-    backgroundColor: "rgba(47, 127, 128, 0.12)",
+    backgroundColor: GSAV_ACCENT_TINT,
   },
 });
