@@ -4,7 +4,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import Constants from 'expo-constants';
 
-const GITHUB_API = 'https://api.github.com/repos/tiajinsha/JKVideo/releases/latest';
+const GITHUB_API = 'https://api.github.com/repos/OpsiClear-Web/JKVideo/releases/latest';
 
 function compareVersions(a: string, b: string): number {
   const pa = a.replace(/^v/, '').split('.').map(Number);
