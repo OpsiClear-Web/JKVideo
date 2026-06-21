@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Diveo",
-    "slug": "jsvideo",
+    "slug": "diveo",
     "version": "1.0.19",
     "scheme": ["gsav"],
     "orientation": "default",
@@ -28,7 +28,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
-      "package": "com.anonymous.jkvideo"
+      "package": "com.opsiclear.diveo"
     },
     "web": {
       "bundler": "metro",
