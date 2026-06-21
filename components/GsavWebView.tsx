@@ -18,7 +18,6 @@ import {
   buildNativeCommandScript,
   buildNativeEmbedUrl,
   GSAV_ACCENT,
-  GSAV_ACCENT_TINT,
   getBridgeStatusLabel,
   getCapabilityLabel,
   getConfiguredGsavWebUrl,
@@ -126,9 +125,6 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
         <Pressable style={styles.headerButton} onPress={() => router.back()} accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </Pressable>
-        <View style={styles.brandMark}>
-          <Ionicons name="cube-outline" size={16} color={GSAV_ACCENT} />
-        </View>
         <View style={styles.headerTitle}>
           <Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{title}</Text>
           <Text numberOfLines={1} style={[styles.subtitle, { color: theme.textSub }]}>{capabilityLabel}</Text>
@@ -236,15 +232,6 @@ const styles = StyleSheet.create({
     height: 42,
     alignItems: "center",
     justifyContent: "center",
-  },
-  brandMark: {
-    width: 30,
-    height: 30,
-    marginRight: 8,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: GSAV_ACCENT_TINT,
   },
   headerTitle: { flex: 1, minWidth: 0 },
   title: { fontSize: 16, fontWeight: "700" },
