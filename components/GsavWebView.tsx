@@ -209,8 +209,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: { flex: 1, minWidth: 0 },
-  title: { fontSize: 16, fontWeight: "700" },
-  subtitle: { marginTop: 1, fontSize: 11 },
+  title: { fontSize: 16, fontFamily: "Roboto_700Bold" },
+  subtitle: { marginTop: 1, fontSize: 11, fontFamily: "Roboto_400Regular" },
   content: { flex: 1, backgroundColor: "#050505" },
   webView: { flex: 1, backgroundColor: "#050505" },
   loadingOverlay: {
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  errorTitle: { fontSize: 16, fontWeight: "800" },
-  errorText: { marginTop: 8, textAlign: "center", lineHeight: 19 },
+  errorTitle: { fontSize: 16, fontFamily: "Roboto_700Bold" },
+  errorText: { marginTop: 8, textAlign: "center", lineHeight: 19, fontFamily: "Roboto_400Regular" },
   retryButton: {
     minWidth: 88,
     minHeight: 34,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: GSAV_ACCENT,
     borderRadius: 8,
   },
-  retryText: { color: GSAV_ACCENT_CONTRAST, fontSize: 13, fontWeight: "800" },
+  retryText: { color: GSAV_ACCENT_CONTRAST, fontSize: 13, fontFamily: "Roboto_700Bold" },
   bridgeBanner: {
     minHeight: 44,
     flexDirection: "row",
@@ -248,5 +248,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  bridgeText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  bridgeText: { flex: 1, fontSize: 12, lineHeight: 17, fontFamily: "Roboto_400Regular" },
 });

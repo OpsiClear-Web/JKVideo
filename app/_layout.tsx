@@ -15,6 +15,12 @@ import { LiveMiniPlayer } from '../components/LiveMiniPlayer';
 import * as Sentry from '@sentry/react-native';
 import { ErrorBoundary } from '@sentry/react-native';
 import { useFonts } from 'expo-font';
+import {
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+  Roboto_900Black,
+} from '@expo-google-fonts/roboto';
 import { Ionicons } from '@expo/vector-icons';
 
 Sentry.init({
@@ -34,6 +40,10 @@ function RootLayout() {
 
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_700Bold,
+    Roboto_900Black,
   });
 
   useEffect(() => {
@@ -50,7 +60,7 @@ function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style={darkMode ? 'light' : 'dark'} />
       <View style={{ flex: 1 }}>
-        <ErrorBoundary fallback={<Text style={{ padding: 32, textAlign: 'center' }}>发生错误，请重启 App</Text>}>
+        <ErrorBoundary fallback={<Text style={{ padding: 32, textAlign: 'center', color: '#ededed', fontFamily: 'Roboto_400Regular' }}>Something went wrong. Please restart the app.</Text>}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen
