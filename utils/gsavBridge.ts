@@ -2,9 +2,12 @@ export const DEFAULT_GSAV_WEB_URL = "http://127.0.0.1:5191";
 export const GSAV_NATIVE_BRIDGE_VERSION = 1;
 export const GSAV_NATIVE_BRIDGE_MIN_VERSION = 1;
 
-/** GSAV brand accent and its derived 12% tint, shared across the native shell UI. */
-export const GSAV_ACCENT = "#2f7f80";
-export const GSAV_ACCENT_TINT = "rgba(47, 127, 128, 0.12)";
+// diveo accent — neutral silver, matching the gsav-hosting web app (content-first,
+// no brand hue), with its 12% tint and a near-black contrast for text/icons placed
+// ON a solid accent surface.
+export const GSAV_ACCENT = "#bdbdbd";
+export const GSAV_ACCENT_TINT = "rgba(189, 189, 189, 0.12)";
+export const GSAV_ACCENT_CONTRAST = "#050505";
 
 /** Routes that render the full-screen GSAV WebView shell (mini-players hidden). */
 export function isGsavShellRoute(pathname: string): boolean {

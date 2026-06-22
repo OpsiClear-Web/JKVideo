@@ -34,20 +34,22 @@ const light: ThemeColors = {
   danger: '#ff4757',
 };
 
+// Dark palette aligned to the gsav-hosting web app (diveo design parity):
+// deep-black bg, near-black cards, silver-ish text, thin neutral borders.
 const dark: ThemeColors = {
-  bg: '#0f0f0f',
-  card: '#1a1a1a',
-  text: '#e0e0e0',
-  textSub: '#666',
-  border: '#2a2a2a',
-  inputBg: '#2a2a2a',
-  sheetBg: '#222',
-  modalBg: '#2a2a2a',
-  modalText: '#e0e0e0',
-  modalTextSub: '#888',
-  modalBorder: '#3a3a3a',
-  placeholder: '#333',
-  iconDefault: '#777',
+  bg: '#0b0b0b',
+  card: '#171717',
+  text: '#ededed',
+  textSub: '#a2a2a2',
+  border: '#2f2f2f',
+  inputBg: '#242424',
+  sheetBg: '#171717',
+  modalBg: '#171717',
+  modalText: '#ededed',
+  modalTextSub: '#a2a2a2',
+  modalBorder: '#2f2f2f',
+  placeholder: '#222222',
+  iconDefault: '#a2a2a2',
   danger: '#ff6b81',
 };
 

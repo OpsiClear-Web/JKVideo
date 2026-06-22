@@ -18,6 +18,7 @@ import {
   buildNativeCommandScript,
   buildNativeEmbedUrl,
   GSAV_ACCENT,
+  GSAV_ACCENT_CONTRAST,
   getConfiguredGsavWebUrl,
   getOrigin,
   isAllowedGsavNavigation,
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: GSAV_ACCENT,
     borderRadius: 8,
   },
-  retryText: { color: "#fff", fontSize: 13, fontWeight: "800" },
+  retryText: { color: GSAV_ACCENT_CONTRAST, fontSize: 13, fontWeight: "800" },
   bridgeBanner: {
     minHeight: 44,
     flexDirection: "row",

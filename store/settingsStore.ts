@@ -10,7 +10,7 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
-  darkMode: false,
+  darkMode: true, // default dark (diveo / gsav-hosting parity); user can still opt into light
   trafficSaving: false,
 
   setDarkMode: async (v) => {
@@ -29,7 +29,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       AsyncStorage.getItem('TRAFFIC_SAVING'),
     ]);
     set({
-      darkMode: dm === '1',
+      darkMode: dm !== '0', // dark unless the user explicitly chose light
       trafficSaving: ts === '1',
     });
   },

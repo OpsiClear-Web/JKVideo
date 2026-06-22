@@ -41,7 +41,7 @@ import {
 import { BigVideoCard } from "../components/BigVideoCard";
 import { FollowedLiveStrip } from "../components/FollowedLiveStrip";
 import { type ThemeColors, useTheme } from "../utils/theme";
-import { GSAV_ACCENT, GSAV_ACCENT_TINT } from "../utils/gsavBridge";
+import { GSAV_ACCENT, GSAV_ACCENT_CONTRAST, GSAV_ACCENT_TINT } from "../utils/gsavBridge";
 import { useVisibleBigKeyStore } from "../store/visibleBigKeyStore";
 import type { LiveRoom } from "../services/types";
 
@@ -93,7 +93,7 @@ function GsavHomeEntry({
         activeOpacity={0.75}
         accessibilityLabel="Open diveo test scene"
       >
-        <Ionicons name="play" size={16} color="#fff" />
+        <Ionicons name="play" size={16} color={GSAV_ACCENT_CONTRAST} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.gsavIconButton, styles.gsavSecondaryButton]}
