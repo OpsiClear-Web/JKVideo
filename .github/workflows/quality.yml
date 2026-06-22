@@ -28,5 +28,10 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      # TODO(P1-2): add `npx expo lint` once an eslint config is committed.
+      # Lint is scoped to the diveo/GSAV surface + utils + scripts (see package.json
+      # "lint" + eslint.config.js). The frozen Bilibili legacy is intentionally not
+      # linted (slated for deletion, ADR 0001). --max-warnings 0 keeps the surface clean.
+      - name: Lint (diveo surface)
+        run: npm run lint
+
       # TODO(P1-3): add `vitest run --coverage` once @vitest/coverage-v8 is installed.
