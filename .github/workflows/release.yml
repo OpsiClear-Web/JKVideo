@@ -6,24 +6,44 @@ on:
       - master
 
 jobs:
-  # Gate the artifact on the same tsc + test quality gate as PRs (not just merges).
+  # Gate the artifact on the same tsc + test + lint quality gate as PRs (not just merges).
   quality:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     uses: ./.github/workflows/quality.yml
 
-  release:
-    needs: quality
-    runs-on: ubuntu-latest
+  # Skip (do NOT fail) the release until the production origin secret is set. This keeps
+  # master green while GSAV_WEB_URL is unconfigured, instead of a permanent red run that
+  # would mask real failures. The release job below is gated on this output.
+  gate:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        env:
+          GSAV_WEB_URL: ${{ secrets.GSAV_WEB_URL }}
+        run: |
+          if [ -n "$GSAV_WEB_URL" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "GSAV_WEB_URL not set — release skipped (set the secret to enable publishing)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: [quality, gate]
+    # Runs only when the production origin is configured; otherwise this job is skipped
+    # (shown gray, not red). Quality still runs on every push for the real CI signal.
+    if: ${{ needs.gate.outputs.configured == 'true' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
     # Production env for the raw prebuild + Gradle build (this pipeline does NOT use
     # `eas build`, so eas.json env never applies). EXPO_PUBLIC_APP_ENV flips
-    # android.usesCleartextTraffic=false at prebuild (app.config.js); the
-    # EXPO_PUBLIC_* values are inlined into the JS bundle during assembleRelease.
-    # The build is REFUSED below when GSAV_WEB_URL is unset, so a release can never
-    # ship a non-functional localhost player (until the secret is configured, P2-4).
+    # android.usesCleartextTraffic=false at prebuild (app.config.js); the EXPO_PUBLIC_*
+    # values are inlined into the JS bundle during assembleRelease.
     env:
       EXPO_PUBLIC_APP_ENV: production
       EXPO_PUBLIC_GSAV_WEB_URL: ${{ secrets.GSAV_WEB_URL }}
@@ -45,13 +65,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Require a real GSAV origin (no localhost releases)
-        run: |
-          if [ -z "${EXPO_PUBLIC_GSAV_WEB_URL}" ]; then
-            echo "::error::GSAV_WEB_URL secret is not set. Refusing to publish a release that would ship a non-functional player. Set the secret (P2-4) to enable releases."
-            exit 1
-          fi
-
       - name: Verify native production config (required gate)
         run: npm run verify:native-production-config
 
@@ -64,9 +77,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Apply the bump locally BEFORE the build so the APK carries the new version,
-      # but do NOT commit/push it until the build + artifact checks pass (below). A
-      # failed build therefore never leaves master with a consumed version number.
+      # Apply the bump locally BEFORE the build so the APK carries the new version, but
+      # do NOT commit/push it until the build + artifact checks pass (below). A failed
+      # build therefore never leaves master with a consumed version number.
       - name: Compute and apply version bump (local only)
         id: bump
         run: |
