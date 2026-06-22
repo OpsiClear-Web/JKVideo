@@ -16,6 +16,7 @@ import {
   isGsavShellRoute,
   isTrustedBridgeOrigin,
   parseBridgeMessage,
+  reduceBridgeEvent,
   updatePlaybackSnapshot,
 } from "./gsavBridge";
 
@@ -426,5 +427,66 @@ describe("getBridgeMismatchMessage", () => {
 
   it("shows '?' when the web version is unreadable", () => {
     expect(getBridgeMismatchMessage({}, 1)).toContain("web v?");
+  });
+});
+
+describe("reduceBridgeEvent (WebView message -> UI effects)", () => {
+  it("GSAV_READY clears the error and syncs theme", () => {
+    const e = reduceBridgeEvent({}, { type: "GSAV_READY", payload: { videoId: "x", title: "T" } });
+    expect(e.bridgeError).toBeNull();
+    expect(e.syncTheme).toBe(true);
+    expect(e.capabilityLabel).toBe("Ready");
+  });
+
+  it("GSAV_ERROR surfaces the payload message, or a default for a non-string", () => {
+    expect(
+      reduceBridgeEvent({}, { type: "GSAV_ERROR", payload: { message: "Decoder died" } }).bridgeError,
+    ).toBe("Decoder died");
+    expect(
+      reduceBridgeEvent({}, { type: "GSAV_ERROR", payload: { message: 42 } }).bridgeError,
+    ).toBe("diveo playback error.");
+  });
+
+  it("GSAV_CAPABILITIES supported: clears error, syncs theme, labels the renderer", () => {
+    const e = reduceBridgeEvent({}, {
+      type: "GSAV_CAPABILITIES",
+      payload: { supported: true, renderer: "webgpu", reasons: [] },
+    });
+    expect(e.bridgeError).toBeNull();
+    expect(e.syncTheme).toBe(true);
+    expect(e.capabilityLabel).toBe("WebGPU");
+  });
+
+  it("GSAV_CAPABILITIES unsupported: sets the reason, no theme sync", () => {
+    const e = reduceBridgeEvent({}, {
+      type: "GSAV_CAPABILITIES",
+      payload: { supported: false, renderer: "webgpu", reasons: ["WebGPU unavailable"] },
+    });
+    expect(e.bridgeError).toBe("WebGPU unavailable");
+    expect(e.syncTheme).toBe(false);
+  });
+
+  it("GSAV_BRIDGE_READY: no error when compatible, mismatch error when not", () => {
+    expect(
+      reduceBridgeEvent({}, {
+        type: "GSAV_BRIDGE_READY",
+        payload: { version: 1, minVersion: 1, commands: [], events: [] },
+      }).bridgeError,
+    ).toBeUndefined(); // undefined = leave the banner as-is
+    const bad = reduceBridgeEvent({}, {
+      type: "GSAV_BRIDGE_READY",
+      payload: { version: 2, minVersion: 2, commands: [], events: [] },
+    });
+    expect(bad.bridgeError).toContain("version mismatch");
+  });
+
+  it("shows live 'Playing · N%' once playing, and leaves error untouched for noise events", () => {
+    const e = reduceBridgeEvent(
+      { state: "playing" },
+      { type: "GSAV_PROGRESS", payload: { videoId: "x", fraction: 0.4, percent: 40 } },
+    );
+    expect(e.capabilityLabel).toBe("Playing · 40%");
+    expect(e.bridgeError).toBeUndefined();
+    expect(e.syncTheme).toBe(false);
   });
 });

@@ -4,18 +4,24 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import Constants from 'expo-constants';
 
+import { compareVersions } from '../utils/version';
+
 const GITHUB_API = 'https://api.github.com/repos/OpsiClear-Web/diveo/releases/latest';
 
-function compareVersions(a: string, b: string): number {
-  const pa = a.replace(/^v/, '').split('.').map(Number);
-  const pb = b.replace(/^v/, '').split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return 1;
-    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return -1;
-  }
-  return 0;
-}
-
+/**
+ * In-app APK self-updater (Android only). Polls the GitHub Releases API for the latest
+ * diveo build; on a newer version it offers a browser download or an in-app
+ * download-and-install:
+ *
+ *   checkUpdate() ─► GitHub API ─► compareVersions(latest, current)
+ *        └─ newer ─► Alert ─► downloadAndInstall(url)
+ *                              ├─► download APK to cache
+ *                              ├─► openInstallSettings()  (grant "install unknown apps")
+ *                              └─► triggerInstall()       (ACTION_VIEW install intent)
+ *
+ * iOS has no in-app install API, so downloadAndInstall is a no-op there. The pure
+ * version comparison lives in utils/version (unit-tested).
+ */
 export function useCheckUpdate() {
   const currentVersion = Constants.expoConfig?.version ?? '0.0.0';
   const [isChecking, setIsChecking] = useState(false);

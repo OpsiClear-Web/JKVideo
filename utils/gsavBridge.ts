@@ -313,3 +313,69 @@ export function updatePlaybackSnapshot(
       return next;
   }
 }
+
+export type BridgeEffect = {
+  /** Accumulated playback snapshot after applying this event. */
+  snapshot: GsavPlaybackSnapshot;
+  /** Header label to show, or null to leave the current one unchanged. */
+  capabilityLabel: string | null;
+  /** undefined = leave the error banner as-is; null = clear it; string = show it. */
+  bridgeError: string | null | undefined;
+  /** Whether the shell should (re)push the current theme to the web app. */
+  syncTheme: boolean;
+};
+
+/**
+ * Pure reduction of one inbound bridge event into the UI effects the WebView shell
+ * applies (snapshot update, header label, error banner, theme re-sync). Extracted from
+ * the component so the message->state wiring is unit-testable without rendering React
+ * Native. The component reads the returned effect and calls the matching setters.
+ *
+ *   message ─► updatePlaybackSnapshot ─► snapshot
+ *           ─► label: live "Playing · N%" while playing, else the status label
+ *           ─► per type: set/clear error · sync theme · version-compat check
+ */
+export function reduceBridgeEvent(
+  previous: GsavPlaybackSnapshot,
+  message: GsavBridgeMessage,
+): BridgeEffect {
+  const snapshot = updatePlaybackSnapshot(previous, message);
+  const capabilityLabel =
+    snapshot.state === "playing" && typeof snapshot.progressPercent === "number"
+      ? `Playing · ${Math.round(snapshot.progressPercent)}%`
+      : getBridgeStatusLabel(message);
+
+  let bridgeError: string | null | undefined;
+  let syncTheme = false;
+
+  switch (message.type) {
+    case "GSAV_ERROR": {
+      const payload = message.payload as { message?: unknown };
+      bridgeError =
+        typeof payload.message === "string" ? payload.message : "diveo playback error.";
+      break;
+    }
+    case "GSAV_READY":
+      bridgeError = null;
+      syncTheme = true;
+      break;
+    case "GSAV_CAPABILITIES": {
+      const payload = message.payload as { supported?: unknown; reasons?: unknown };
+      if (payload.supported !== true) {
+        bridgeError =
+          getUnsupportedReason(payload) ?? "diveo playback is not supported on this device.";
+      } else {
+        bridgeError = null;
+        syncTheme = true;
+      }
+      break;
+    }
+    case "GSAV_BRIDGE_READY": {
+      const payload = message.payload as { version?: unknown; minVersion?: unknown };
+      if (!isBridgeCompatible(payload)) bridgeError = getBridgeMismatchMessage(payload);
+      break;
+    }
+  }
+
+  return { snapshot, capabilityLabel, bridgeError, syncTheme };
+}

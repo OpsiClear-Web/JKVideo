@@ -18,19 +18,14 @@ import {
   buildNativeCommandScript,
   buildNativeEmbedUrl,
   GSAV_ACCENT,
-  getBridgeMismatchMessage,
-  getBridgeStatusLabel,
-  getCapabilityLabel,
   getConfiguredGsavWebUrl,
   getOrigin,
-  getUnsupportedReason,
   isAllowedGsavNavigation,
-  isBridgeCompatible,
   isTrustedBridgeOrigin,
+  parseBridgeMessage,
+  reduceBridgeEvent,
   type GsavPlaybackSnapshot,
   type NativeGsavCommand,
-  parseBridgeMessage,
-  updatePlaybackSnapshot,
 } from "../utils/gsavBridge";
 import { useSettingsStore } from "../store/settingsStore";
 import { useTheme } from "../utils/theme";
@@ -71,46 +66,18 @@ export function GsavWebView({ path, title }: GsavWebViewProps) {
   }, [syncNativeTheme, loadKey]);
 
   function handleBridgeMessage(event: WebViewMessageEvent) {
-    // Trust gate: only act on messages from the allowed origin. nativeEvent.url is
-    // the WebView's current page; together with the navigation gate below this drops
-    // anything not served from the configured GSAV origin.
+    // Trust gate: only act on messages from the allowed origin. nativeEvent.url is the
+    // WebView's current page; with the navigation gate below this drops anything not
+    // served from the configured GSAV origin. All message->state wiring lives in the
+    // pure reduceBridgeEvent (unit-tested); the component just applies the effects.
     if (!isTrustedBridgeOrigin(getOrigin(event.nativeEvent.url), allowedOrigin)) return;
     const message = parseBridgeMessage(event.nativeEvent.data);
     if (!message) return;
-    const snapshot = (playbackSnapshotRef.current = updatePlaybackSnapshot(
-      playbackSnapshotRef.current,
-      message,
-    ));
-    // Surface live playback progress in the header subtitle while playing, so the
-    // accumulated snapshot drives the UI; otherwise show the event's status label.
-    const playbackLabel =
-      snapshot.state === "playing" && typeof snapshot.progressPercent === "number"
-        ? `Playing · ${Math.round(snapshot.progressPercent)}%`
-        : getBridgeStatusLabel(message);
-    if (playbackLabel) setCapabilityLabel(playbackLabel);
-
-    if (message.type === "GSAV_ERROR") {
-      const payload = message.payload as { message?: unknown };
-      setBridgeError(typeof payload.message === "string" ? payload.message : "diveo playback error.");
-    } else if (message.type === "GSAV_READY") {
-      setBridgeError(null);
-      syncNativeTheme();
-    } else if (message.type === "GSAV_CAPABILITIES") {
-      const payload = message.payload as { supported?: unknown; renderer?: unknown; reasons?: unknown };
-      const supported = payload.supported === true;
-      setCapabilityLabel(getCapabilityLabel(payload));
-      if (!supported) {
-        setBridgeError(getUnsupportedReason(payload) ?? "diveo playback is not supported on this device.");
-      } else {
-        setBridgeError(null);
-        syncNativeTheme();
-      }
-    } else if (message.type === "GSAV_BRIDGE_READY") {
-      const payload = message.payload as { version?: unknown; minVersion?: unknown };
-      if (!isBridgeCompatible(payload)) {
-        setBridgeError(getBridgeMismatchMessage(payload));
-      }
-    }
+    const effect = reduceBridgeEvent(playbackSnapshotRef.current, message);
+    playbackSnapshotRef.current = effect.snapshot;
+    if (effect.capabilityLabel) setCapabilityLabel(effect.capabilityLabel);
+    if (effect.bridgeError !== undefined) setBridgeError(effect.bridgeError);
+    if (effect.syncTheme) syncNativeTheme();
   }
 
   async function copyCurrentUrl() {
