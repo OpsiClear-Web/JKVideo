@@ -74,7 +74,7 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionLabel, { color: theme.textSub }]}>Updates</Text>
         <TouchableOpacity
           style={styles.updateBtn}
-          onPress={checkUpdate}
+          onPress={() => checkUpdate()}
           activeOpacity={0.7}
           disabled={isChecking || downloadProgress !== null}
         >

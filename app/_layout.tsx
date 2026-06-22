@@ -1,7 +1,7 @@
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useDownloadStore } from '../store/downloadStore';
@@ -10,6 +10,7 @@ import { usePlayProgressStore } from '../store/playProgressStore';
 import { initMiniExclusion } from '../store/miniExclusion';
 import { isGsavShellRoute } from '../utils/gsavBridge';
 import { useTheme } from '../utils/theme';
+import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { LiveMiniPlayer } from '../components/LiveMiniPlayer';
 import * as Sentry from '@sentry/react-native';
@@ -35,6 +36,7 @@ function RootLayout() {
   const loadDownloads = useDownloadStore(s => s.loadFromStorage);
   const restoreSettings = useSettingsStore(s => s.restore);
   const darkMode = useSettingsStore(s => s.darkMode);
+  const { checkUpdate } = useCheckUpdate();
   const pathname = usePathname();
   const gsavShellActive = isGsavShellRoute(pathname);
 
@@ -52,6 +54,11 @@ function RootLayout() {
     restoreSettings();
     usePlayProgressStore.getState().hydrate();
     initMiniExclusion();
+    // World A: the native client self-updates (APK). Check once on launch and
+    // only prompt if a newer build exists; settings still has a manual check.
+    if (Platform.OS === 'android') {
+      void checkUpdate({ silent: true });
+    }
   }, []);
 
   if (!fontsLoaded) return null;

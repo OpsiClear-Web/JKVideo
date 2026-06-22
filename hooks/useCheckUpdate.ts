@@ -27,7 +27,10 @@ export function useCheckUpdate() {
   const [isChecking, setIsChecking] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
 
-  const checkUpdate = async () => {
+  const checkUpdate = async (options: { silent?: boolean } = {}) => {
+    // silent = launch-time check: only surface a found update, stay quiet on
+    // "up to date" / network errors. Non-silent = user tapped "check".
+    const silent = options.silent ?? false;
     setIsChecking(true);
     try {
       const res = await fetch(GITHUB_API, {
@@ -44,7 +47,7 @@ export function useCheckUpdate() {
       const releaseNotes: string = data.body ?? '';
 
       if (compareVersions(latestVersion, currentVersion) <= 0) {
-        Alert.alert('Up to date', `v${currentVersion} is the latest version.`);
+        if (!silent) Alert.alert('Up to date', `v${currentVersion} is the latest version.`);
         return;
       }
 
@@ -64,7 +67,7 @@ export function useCheckUpdate() {
         ]
       );
     } catch (e: any) {
-      Alert.alert('Check failed', e?.message ?? 'Network error. Please try again.');
+      if (!silent) Alert.alert('Check failed', e?.message ?? 'Network error. Please try again.');
     } finally {
       setIsChecking(false);
     }
