@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "proxy": "node dev-proxy.js",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint components/GsavWebView.tsx components/GsavScreen.tsx app/gsav-diagnostics.tsx app/gsav app/watch utils/gsavBridge.ts utils/gsavBridge.test.ts scripts --max-warnings 0",
     "gsav:preflight": "node scripts/gsav-native-preflight.js",
     "verify:native-production-config": "node scripts/verify-native-production-config.js"
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@types/pako": "^2.0.4",
     "@types/react": "~19.2.2",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^56.0.4",
     "express": "^4.22.1",
