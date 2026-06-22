@@ -50,6 +50,7 @@ yarn-error.*
 CLAUDE.md
 docs/*
 !docs/GSAV_NATIVE_QA.md
+!docs/GSAV_NATIVE_SHELL_ARCHITECTURE.md
 !docs/adr/
 !docs/adr/**
 feature.md
