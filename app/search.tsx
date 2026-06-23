@@ -87,7 +87,12 @@ export default function SearchScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.grid}>
             {results.map((s) => (
-              <SceneCard key={s.id} item={s} onPress={() => router.push(`/watch/${s.id}` as never)} />
+              <SceneCard
+                key={s.id}
+                item={s}
+                onPress={() => router.push(`/watch/${s.id}` as never)}
+                onAuthorPress={s.creatorId ? () => router.push(`/creator/${s.creatorId}` as never) : undefined}
+              />
             ))}
           </View>
         </ScrollView>

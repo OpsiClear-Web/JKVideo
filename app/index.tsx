@@ -117,7 +117,12 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Scenes</Text>
           <View style={styles.grid}>
             {items.map((s) => (
-              <SceneCard key={s.id} item={s} onPress={() => openScene(s.id)} />
+              <SceneCard
+                key={s.id}
+                item={s}
+                onPress={() => openScene(s.id)}
+                onAuthorPress={s.creatorId ? () => router.push(`/creator/${s.creatorId}` as never) : undefined}
+              />
             ))}
           </View>
         </ScrollView>

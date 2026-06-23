@@ -9,7 +9,15 @@ import type { GsavContentItem } from "../services/gsav";
 
 // Shared 16:9 scene card for the GSAV browse surfaces (feed, search, creator).
 // Self-themed; renders the real poster over a cube-icon fallback.
-export function SceneCard({ item, onPress }: { item: GsavContentItem; onPress: () => void }) {
+export function SceneCard({
+  item,
+  onPress,
+  onAuthorPress,
+}: {
+  item: GsavContentItem;
+  onPress: () => void;
+  onAuthorPress?: () => void;
+}) {
   const theme = useTheme();
   return (
     <Pressable
@@ -25,7 +33,13 @@ export function SceneCard({ item, onPress }: { item: GsavContentItem; onPress: (
       </View>
       <View style={styles.info}>
         <Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>{item.title}</Text>
-        <Text numberOfLines={1} style={[styles.sub, { color: theme.textSub }]}>{item.author}</Text>
+        {onAuthorPress ? (
+          <Pressable onPress={onAuthorPress} hitSlop={4} accessibilityLabel={`Open ${item.author}`}>
+            <Text numberOfLines={1} style={[styles.sub, { color: theme.textSub }]}>{item.author}</Text>
+          </Pressable>
+        ) : (
+          <Text numberOfLines={1} style={[styles.sub, { color: theme.textSub }]}>{item.author}</Text>
+        )}
       </View>
     </Pressable>
   );
