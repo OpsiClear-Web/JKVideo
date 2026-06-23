@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { gsavCatalog, type GsavContentItem } from "../services/gsav";
+import { useLikedScenesStore } from "../store/likedScenesStore";
 
 /**
  * GSAV catalog search (World B): full-text search via the catalog `q` param.
@@ -31,6 +32,7 @@ export function useGsavSearch() {
       if (reqId === reqRef.current) {
         setResults(page.videos);
         setSearched(true);
+        void useLikedScenesStore.getState().hydrateCounts(page.videos.map((v) => v.backendId));
       }
     } catch (e) {
       if (reqId === reqRef.current) setError(e instanceof Error ? e.message : "Search failed.");

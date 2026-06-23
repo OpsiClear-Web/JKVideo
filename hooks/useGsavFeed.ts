@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { gsavCatalog, type GsavContentItem } from "../services/gsav";
+import { useLikedScenesStore } from "../store/likedScenesStore";
 
 /**
  * Native GSAV feed (World B): reads the diveo catalog from gsav-hosting via
@@ -23,6 +24,7 @@ export function useGsavFeed() {
     try {
       const page = await gsavCatalog.feed();
       setItems(page.videos);
+      void useLikedScenesStore.getState().hydrateCounts(page.videos.map((v) => v.backendId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load the diveo catalog.");
     } finally {

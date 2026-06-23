@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { gsavCatalog, type GsavContentItem, type GsavCreator } from "../services/gsav";
+import { useLikedScenesStore } from "../store/likedScenesStore";
 
 /**
  * GSAV creator profile (World B): one catalog call filtered by `channel` returns
@@ -26,6 +27,7 @@ export function useGsavCreator(handle: string) {
         const page = await gsavCatalog.byCreator(handle);
         if (!active) return;
         setVideos(page.videos);
+        void useLikedScenesStore.getState().hydrateCounts(page.videos.map((v) => v.backendId));
         setCreator(page.creators.find((c) => c.handle === handle || c.id === handle) ?? page.creators[0] ?? null);
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : "Failed to load creator.");
