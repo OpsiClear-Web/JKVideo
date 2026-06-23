@@ -13,10 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { type ThemeColors, useTheme } from "../utils/theme";
+import { useTheme } from "../utils/theme";
 import { GSAV_ACCENT, GSAV_ACCENT_CONTRAST } from "../utils/gsavBridge";
 import { useGsavFeed } from "../hooks/useGsavFeed";
-import type { GsavContentItem } from "../services/gsav";
+import { SceneCard } from "../components/SceneCard";
 
 // World B: the native home is a diveo-content feed read live from gsav-hosting's
 // catalog (services/gsav -> useGsavFeed). Tapping a scene opens the GSAV player
@@ -24,39 +24,9 @@ import type { GsavContentItem } from "../services/gsav";
 // the native app owns the browse experience.
 const FONT = {
   regular: "Roboto_400Regular",
-  medium: "Roboto_500Medium",
   bold: "Roboto_700Bold",
   black: "Roboto_900Black",
 } as const;
-
-function SceneCard({
-  item,
-  theme,
-  onPress,
-}: {
-  item: GsavContentItem;
-  theme: ThemeColors;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
-      onPress={onPress}
-      accessibilityLabel={`Open ${item.title}`}
-    >
-      <View style={[styles.cardThumb, { backgroundColor: theme.placeholder }]}>
-        <Ionicons name="cube-outline" size={26} color={GSAV_ACCENT} />
-        {item.posterUrl ? (
-          <Image source={{ uri: item.posterUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-        ) : null}
-      </View>
-      <View style={styles.cardInfo}>
-        <Text numberOfLines={1} style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
-        <Text numberOfLines={1} style={[styles.cardSub, { color: theme.textSub }]}>{item.author}</Text>
-      </View>
-    </Pressable>
-  );
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -77,6 +47,14 @@ export default function HomeScreen() {
       >
         <Text style={[styles.brand, { color: GSAV_ACCENT }]}>diveo</Text>
         <View style={styles.topNavActions}>
+          <Pressable
+            onPress={() => router.push("/search" as never)}
+            hitSlop={8}
+            style={styles.iconBtn}
+            accessibilityLabel="Search"
+          >
+            <Ionicons name="search" size={20} color={theme.text} />
+          </Pressable>
           <Pressable
             onPress={() => router.push("/gsav-diagnostics" as never)}
             hitSlop={8}
@@ -139,7 +117,7 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Scenes</Text>
           <View style={styles.grid}>
             {items.map((s) => (
-              <SceneCard key={s.id} item={s} theme={theme} onPress={() => openScene(s.id)} />
+              <SceneCard key={s.id} item={s} onPress={() => openScene(s.id)} />
             ))}
           </View>
         </ScrollView>
@@ -187,15 +165,4 @@ const styles = StyleSheet.create({
   heroSub: { fontFamily: FONT.regular, fontSize: 13, color: "#a2a2a2", marginTop: 2 },
   sectionTitle: { fontFamily: FONT.bold, fontSize: 16 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  card: {
-    width: "47.5%",
-    flexGrow: 1,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: "hidden",
-  },
-  cardThumb: { aspectRatio: 16 / 9, alignItems: "center", justifyContent: "center" },
-  cardInfo: { padding: 8 },
-  cardTitle: { fontFamily: FONT.medium, fontSize: 13 },
-  cardSub: { fontFamily: FONT.regular, fontSize: 11, marginTop: 2 },
 });
