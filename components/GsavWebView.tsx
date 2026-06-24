@@ -15,10 +15,13 @@ import { WebView } from "react-native-webview";
 import {
   GSAV_ACCENT,
   GSAV_ACCENT_CONTRAST,
+  buildSessionBridgeScript,
   getConfiguredGsavWebUrl,
   getOrigin,
   isAllowedGsavNavigation,
+  isAuthReadyMessage,
 } from "../utils/gsavBridge";
+import { useGsavAuthStore } from "../store/gsavAuthStore";
 import { useTheme } from "../utils/theme";
 
 type GsavWebViewProps = {
@@ -52,6 +55,7 @@ export function GsavWebView({ path }: GsavWebViewProps) {
   // Empty when the build has no URL OR the configured URL is malformed; either way
   // the WebView is not rendered and the "not configured" panel shows instead.
   const allowedOrigin = useMemo(() => (gsavWebUrl ? getOrigin(gsavWebUrl) : ""), [gsavWebUrl]);
+  const session = useGsavAuthStore((s) => s.session);
 
   // Android hardware-back walks the WebView's own history before letting the OS
   // pop/exit. iOS relies on gsav-hosting's in-page navigation (it owns chrome).
@@ -72,6 +76,22 @@ export function GsavWebView({ path }: GsavWebViewProps) {
     setLoading(true);
     setLoadKey((value) => value + 1);
   }, []);
+
+  // Scene-social bridge: hand the native Supabase session to the embedded player
+  // (so its comments/danmaku/like are authed). Applied when the page signals
+  // readiness (onMessage GSAV_AUTH_READY) and re-applied whenever the session
+  // changes (login/logout) while the player is open.
+  const applySession = useCallback(() => {
+    webViewRef.current?.injectJavaScript(
+      buildSessionBridgeScript(
+        session ? { accessToken: session.access_token, refreshToken: session.refresh_token } : null,
+      ),
+    );
+  }, [session]);
+
+  useEffect(() => {
+    applySession();
+  }, [applySession]);
 
   if (!allowedOrigin) {
     return (
@@ -101,6 +121,9 @@ export function GsavWebView({ path }: GsavWebViewProps) {
           setSupportMultipleWindows={false}
           mixedContentMode={Platform.OS === "android" ? (__DEV__ ? "compatibility" : "never") : undefined}
           onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
+          onMessage={(event) => {
+            if (isAuthReadyMessage(event.nativeEvent.data)) applySession();
+          }}
           onShouldStartLoadWithRequest={(request) => {
             if (isAllowedGsavNavigation(request.url, allowedOrigin)) return true;
             // Open genuine external http(s) links in the system browser instead

@@ -96,6 +96,38 @@ export function getOrigin(uri: string) {
   }
 }
 
+// --- World B scene-social session bridge (Plan A) ---
+// The shell hands its native Supabase session to the embedded player so the
+// player's existing comments/danmaku/like UI is authed as the native user.
+// Native: injectJavaScript self-posts the message (same-origin → trusted).
+// Web: postMessage to the iframe (origin-checked on the player side).
+export type GsavSessionPayload = { accessToken: string; refreshToken: string };
+
+export function buildSessionBridgeMessage(payload: GsavSessionPayload | null) {
+  return payload
+    ? { type: "GSAV_SET_SESSION", bridgeVersion: GSAV_NATIVE_BRIDGE_VERSION, payload }
+    : { type: "GSAV_CLEAR_SESSION", bridgeVersion: GSAV_NATIVE_BRIDGE_VERSION };
+}
+
+/** injectJavaScript payload (native WebView): self-posts the session message so
+ *  the page's same-origin message listener applies it. */
+export function buildSessionBridgeScript(payload: GsavSessionPayload | null): string {
+  const message = JSON.stringify(buildSessionBridgeMessage(payload));
+  return `(function(){try{window.postMessage(${JSON.stringify(message)}, '*');}catch(e){}})(); true;`;
+}
+
+export function isAuthReadyMessage(data: unknown): boolean {
+  let value: unknown = data;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return false;
+    }
+  }
+  return typeof value === "object" && value !== null && (value as { type?: unknown }).type === "GSAV_AUTH_READY";
+}
+
 /**
  * Allowlist-positive navigation gate for the GSAV WebView. Returns true ONLY when
  * the request URL parses to a non-empty origin that EXACTLY matches the single
