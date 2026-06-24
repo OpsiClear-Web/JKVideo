@@ -131,6 +131,15 @@ component over `@opsiclear/gsav-client`** (Plan B), not a separate copy.
 
 ## Plan B — Extract `@opsiclear/gsav-client` (+ `@opsiclear/gsav-bridge`)
 
+> **Status — Phase 1 DONE (verified):** `@opsiclear/gsav-client` (catalog client +
+> content types + defensive normalizers) extracted to `gsavjs/packages/gsav-client`
+> (config-injected, platform-agnostic), built + vendored into diveo as a tgz;
+> `services/gsav.ts` is now a thin config adapter re-exporting it. diveo green
+> (tsc/lint/111 tests) + web bundle resolves the package. **Remaining (cross-repo /
+> multi-session):** (2) move social ops (saved/like/follow/comment) into the package;
+> (3) gsav-hosting consumes it (replace `socialApi.ts` + `api-catalog.ts`); (4)
+> extract `@opsiclear/gsav-bridge` (the protocol incl. `setSession`); (5) cross-repo CI.
+
 **Goal.** One shared SDK for data + auth + social, consumed by **both**
 gsav-hosting and diveo — replacing the mirrors (diveo's `services/gsav.ts` +
 social stores re-implement gsav-hosting's `socialApi.ts`; `GsavContentItem`/
