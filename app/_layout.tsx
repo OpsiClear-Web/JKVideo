@@ -13,7 +13,6 @@ import { useTheme } from '../utils/theme';
 import { useCheckUpdate } from '../hooks/useCheckUpdate';
 import { useGsavAuthStore } from '../store/gsavAuthStore';
 import { useSavedScenesStore } from '../store/savedScenesStore';
-import { useLikedScenesStore } from '../store/likedScenesStore';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { LiveMiniPlayer } from '../components/LiveMiniPlayer';
 import * as Sentry from '@sentry/react-native';
@@ -68,7 +67,6 @@ function RootLayout() {
 
   useEffect(() => {
     void useSavedScenesStore.getState().load();
-    void useLikedScenesStore.getState().load();
   }, [authUserId]);
 
   if (!fontsLoaded) return null;

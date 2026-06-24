@@ -2,14 +2,12 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
 import { useTheme } from "../utils/theme";
 import { GSAV_ACCENT } from "../utils/gsavBridge";
 import type { GsavContentItem } from "../services/gsav";
 import { useGsavAuthStore } from "../store/gsavAuthStore";
 import { useSavedScenesStore } from "../store/savedScenesStore";
-import { useLikedScenesStore } from "../store/likedScenesStore";
 
 // Shared 16:9 scene card for the GSAV browse surfaces (feed, search, creator).
 // Self-themed; renders the real poster over a cube-icon fallback.
@@ -27,10 +25,6 @@ export function SceneCard({
   const saved = useSavedScenesStore((s) => (item.backendId ? s.savedIds.has(item.backendId) : false));
   const toggleSave = useSavedScenesStore((s) => s.toggle);
   const showSave = Boolean(userId && item.backendId);
-  const liked = useLikedScenesStore((s) => (item.backendId ? s.likedIds.has(item.backendId) : false));
-  const likeCount = useLikedScenesStore((s) => (item.backendId ? s.counts[item.backendId] ?? 0 : 0));
-  const toggleLike = useLikedScenesStore((s) => s.toggle);
-  const router = useRouter();
   return (
     <Pressable
       style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
@@ -50,23 +44,6 @@ export function SceneCard({
             accessibilityLabel={saved ? "Remove from library" : "Save to library"}
           >
             <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={15} color={saved ? GSAV_ACCENT : "#ededed"} />
-          </Pressable>
-        ) : null}
-        {item.backendId ? (
-          <Pressable
-            style={styles.likeBadge}
-            onPress={() => {
-              if (!userId) {
-                router.push("/login" as never);
-                return;
-              }
-              if (item.backendId) toggleLike(item.backendId);
-            }}
-            hitSlop={6}
-            accessibilityLabel={liked ? "Unlike" : "Like"}
-          >
-            <Ionicons name={liked ? "heart" : "heart-outline"} size={13} color={liked ? "#ff6b81" : "#ededed"} />
-            <Text style={styles.likeText}>{likeCount}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -104,19 +81,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  likeBadge: {
-    position: "absolute",
-    bottom: 6,
-    left: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    height: 22,
-    paddingHorizontal: 7,
-    borderRadius: 11,
-    backgroundColor: "rgba(5,5,5,0.5)",
-  },
-  likeText: { color: "#ededed", fontFamily: "Roboto_500Medium", fontSize: 11 },
   info: { padding: 8 },
   title: { fontFamily: "Roboto_500Medium", fontSize: 13 },
   sub: { fontFamily: "Roboto_400Regular", fontSize: 11, marginTop: 2 },
