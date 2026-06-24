@@ -82,6 +82,53 @@ Both transports surface as a `window` `message` event in the page:
 
 ---
 
+## Plan A.6 — Retire the native like surface (one surface per concern)
+
+After Plan A works, the native card-heart is a redundant second implementation of
+a **scene-level** action. Keep browse-level social native (**save**, **follow**);
+**like** lives in the player alongside comments/danmaku.
+
+**Why the native one (not the player's):** the player's like is the *shared*
+implementation (gsav-hosting `SocialPanel`, used by web + native via the WebView);
+the native heart is a copy (`likedScenesStore` + badge + per-feed count hydration).
+A like is a reaction to what you're watching → scene-level, not browse-level
+(YouTube: Save on cards, Like on the watch page).
+
+**Precondition (ordering matters).** Verify Plan A first — the **in-player like
+persists** — *before* removing the native one, else there's a window with no
+working like.
+
+**Changes (delete-heavy):**
+1. **Delete** `store/likedScenesStore.ts`.
+2. `components/SceneCard.tsx`:
+   - remove imports `useRouter` (only the heart uses it) and `useLikedScenesStore`;
+   - remove the `liked` / `likeCount` / `toggleLike` / `router` hooks;
+   - remove the `likeBadge` `<Pressable>` block from the thumb;
+   - remove styles `likeBadge`, `likeText`;
+   - **keep** `userId` / `saved` / `toggleSave` + the bookmark + `onAuthorPress`.
+3. `hooks/useGsavFeed.ts` — remove the `useLikedScenesStore` import + the
+   `void useLikedScenesStore.getState().hydrateCounts(...)` line.
+4. `hooks/useGsavSearch.ts` — same.
+5. `hooks/useGsavCreator.ts` — same.
+6. `app/_layout.tsx` — remove the `useLikedScenesStore` import + the
+   `void useLikedScenesStore.getState().load();` line (keep the saved load).
+
+**Keep (do NOT touch):** `GsavContentItem.backendId` (save needs
+`saved_videos.video_id`); the save bookmark, follow, and the session bridge.
+
+**Verification:**
+- `grep -rn "likedScenesStore\|hydrateCounts\|likeBadge" JKVideo` → no matches.
+- `tsc` + `lint` (no unused imports/styles) + `vitest` all green.
+- Cards show the bookmark, no heart; in-player like still works + persists.
+
+**Rollback / reversibility:** a single commit; `git revert` restores it. If
+feed-level liking later becomes a deliberate product goal, re-add it as a **shared
+component over `@opsiclear/gsav-client`** (Plan B), not a separate copy.
+
+**Estimate:** ~30–45 min.
+
+---
+
 ## Plan B — Extract `@opsiclear/gsav-client` (+ `@opsiclear/gsav-bridge`)
 
 **Goal.** One shared SDK for data + auth + social, consumed by **both**
