@@ -1,13 +1,14 @@
+import { getChannelFollowerCount, isChannelFollowed, setChannelFollowed } from "@opsiclear/gsav-client";
 import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "../services/supabase";
 import { useGsavAuthStore } from "../store/gsavAuthStore";
 
 /**
- * Follow/unfollow a creator's channel (World B social). Mirrors gsav-hosting's
- * socialApi: follows is {profile_id, channel_id}; follower count comes from the
- * public channel_public_counts view. Reads follow + count on mount; toggle is
- * optimistic with rollback and requires a signed-in user (canFollow).
+ * Follow/unfollow a creator's channel (World B social). Backed by the shared
+ * @opsiclear/gsav-client social ops (follows {profile_id, channel_id}; follower
+ * count from the public channel_public_counts view). Reads follow + count on
+ * mount; toggle is optimistic with rollback and requires a signed-in user.
  */
 export function useGsavFollow(channelId: string | undefined, initialFollowerCount?: number) {
   const userId = useGsavAuthStore((s) => s.user?.id);
@@ -23,24 +24,22 @@ export function useGsavFollow(channelId: string | undefined, initialFollowerCoun
     if (!channelId) return;
     let active = true;
     (async () => {
-      const { data: countRow } = await supabase
-        .from("channel_public_counts")
-        .select("follower_count")
-        .eq("channel_id", channelId)
-        .maybeSingle();
-      if (active && countRow) setFollowerCount(Number(countRow.follower_count ?? 0));
-
+      try {
+        const count = await getChannelFollowerCount(supabase, channelId);
+        if (active && count !== null) setFollowerCount(count);
+      } catch {
+        // keep current count
+      }
       if (!userId) {
         if (active) setFollowing(false);
         return;
       }
-      const { data: followRow } = await supabase
-        .from("follows")
-        .select("channel_id")
-        .eq("channel_id", channelId)
-        .eq("profile_id", userId)
-        .maybeSingle();
-      if (active) setFollowing(Boolean(followRow));
+      try {
+        const followed = await isChannelFollowed(supabase, userId, channelId);
+        if (active) setFollowing(followed);
+      } catch {
+        // keep current state
+      }
     })();
     return () => {
       active = false;
@@ -54,10 +53,7 @@ export function useGsavFollow(channelId: string | undefined, initialFollowerCoun
     setFollowing(next);
     setFollowerCount((c) => Math.max(0, c + (next ? 1 : -1)));
     try {
-      const result = next
-        ? await supabase.from("follows").upsert({ profile_id: userId, channel_id: channelId })
-        : await supabase.from("follows").delete().eq("profile_id", userId).eq("channel_id", channelId);
-      if (result.error) throw result.error;
+      await setChannelFollowed(supabase, userId, channelId, next);
     } catch {
       // rollback the optimistic update
       setFollowing(!next);
