@@ -18,6 +18,7 @@
     "@dr.pogodin/react-native-static-server": "^0.26.0",
     "@expo-google-fonts/roboto": "^0.4.3",
     "@expo/vector-icons": "^15.0.2",
+    "@opsiclear/gsav-bridge": "file:vendor/opsiclear-gsav-bridge-0.1.0.tgz",
     "@opsiclear/gsav-client": "file:vendor/opsiclear-gsav-client-0.2.0.tgz",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@sentry/react-native": "~7.11.0",

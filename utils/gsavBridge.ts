@@ -1,3 +1,11 @@
+import { buildSessionMessage, type GsavSessionPayload } from "@opsiclear/gsav-bridge";
+
+// The session-auth wire contract (message types, version, payload shape) lives in
+// the shared @opsiclear/gsav-bridge so the diveo sender + gsav-hosting receiver
+// can't drift. Re-exported here so existing diveo importers are unchanged.
+export { buildSessionMessage as buildSessionBridgeMessage, isAuthReadyMessage } from "@opsiclear/gsav-bridge";
+export type { GsavSessionPayload } from "@opsiclear/gsav-bridge";
+
 export const DEFAULT_GSAV_WEB_URL = "http://127.0.0.1:5191";
 export const GSAV_NATIVE_BRIDGE_VERSION = 1;
 export const GSAV_NATIVE_BRIDGE_MIN_VERSION = 1;
@@ -101,31 +109,11 @@ export function getOrigin(uri: string) {
 // player's existing comments/danmaku/like UI is authed as the native user.
 // Native: injectJavaScript self-posts the message (same-origin → trusted).
 // Web: postMessage to the iframe (origin-checked on the player side).
-export type GsavSessionPayload = { accessToken: string; refreshToken: string };
-
-export function buildSessionBridgeMessage(payload: GsavSessionPayload | null) {
-  return payload
-    ? { type: "GSAV_SET_SESSION", bridgeVersion: GSAV_NATIVE_BRIDGE_VERSION, payload }
-    : { type: "GSAV_CLEAR_SESSION", bridgeVersion: GSAV_NATIVE_BRIDGE_VERSION };
-}
-
 /** injectJavaScript payload (native WebView): self-posts the session message so
  *  the page's same-origin message listener applies it. */
 export function buildSessionBridgeScript(payload: GsavSessionPayload | null): string {
-  const message = JSON.stringify(buildSessionBridgeMessage(payload));
+  const message = JSON.stringify(buildSessionMessage(payload));
   return `(function(){try{window.postMessage(${JSON.stringify(message)}, '*');}catch(e){}})(); true;`;
-}
-
-export function isAuthReadyMessage(data: unknown): boolean {
-  let value: unknown = data;
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return false;
-    }
-  }
-  return typeof value === "object" && value !== null && (value as { type?: unknown }).type === "GSAV_AUTH_READY";
 }
 
 /**
