@@ -140,10 +140,15 @@ component over `@opsiclear/gsav-client`** (Plan B), not a separate copy.
 > diveo's `services/gsav` (catalog) + `savedScenesStore` + `useGsavFollow` (social)
 > consume it; nothing in diveo hand-rolls catalog/social queries anymore. Verified:
 > tsc/lint/116 tests (+5 social unit tests) + web bundle resolves it + live backend
-> round-trips save/follow under viewer RLS. **Remaining (cross-repo / multi-session,
-> needs gsav-hosting's own env + test loop):** (3) gsav-hosting consumes the package
-> (replace `socialApi.ts` + `api-catalog.ts`; unify the `Video` type so
-> `getVideoSocialState`/`resolveSocialRefs` move into the package too); (4) extract
+> round-trips save/follow under viewer RLS.
+>
+> **Phase 3a DONE (verified in gsav-hosting):** gsav-hosting now vendors the package
+> and its `socialApi.ts` re-exports the write ops (save/like/follow/comment) from
+> `@opsiclear/gsav-client` instead of defining them — verified by gsav-hosting's own
+> `type:check` + full vitest (106 tests) + `vite build`. The social write logic is now
+> single-sourced across BOTH apps. **Remaining:** (3b) unify the `Video`/`GsavContentItem`
+> type so gsav-hosting's catalog client (`api-catalog`) + the Video-coupled reads
+> (`getVideoSocialState`/`resolveSocialRefs`) also move into the package; (4) extract
 > `@opsiclear/gsav-bridge` (the protocol incl. `setSession`); (5) cross-repo CI.
 
 **Goal.** One shared SDK for data + auth + social, consumed by **both**
