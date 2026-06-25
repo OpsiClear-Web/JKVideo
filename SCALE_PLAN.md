@@ -131,14 +131,20 @@ component over `@opsiclear/gsav-client`** (Plan B), not a separate copy.
 
 ## Plan B — Extract `@opsiclear/gsav-client` (+ `@opsiclear/gsav-bridge`)
 
-> **Status — Phase 1 DONE (verified):** `@opsiclear/gsav-client` (catalog client +
-> content types + defensive normalizers) extracted to `gsavjs/packages/gsav-client`
-> (config-injected, platform-agnostic), built + vendored into diveo as a tgz;
-> `services/gsav.ts` is now a thin config adapter re-exporting it. diveo green
-> (tsc/lint/111 tests) + web bundle resolves the package. **Remaining (cross-repo /
-> multi-session):** (2) move social ops (saved/like/follow/comment) into the package;
-> (3) gsav-hosting consumes it (replace `socialApi.ts` + `api-catalog.ts`); (4)
-> extract `@opsiclear/gsav-bridge` (the protocol incl. `setSession`); (5) cross-repo CI.
+> **Status — Phases 1 & 2 DONE (verified, diveo side):** `@opsiclear/gsav-client`
+> (now v0.2.0, source `gsavjs/packages/gsav-client`, vendored into diveo as a tgz)
+> holds **(1)** the catalog client + content types + defensive normalizers and
+> **(2)** the social ops — save/like/follow/comment write ops (verbatim from
+> `socialApi`) + browse reads (`getSavedVideoIds`, `getChannelFollowerCount`,
+> `isChannelFollowed`), typed against a structural client so it builds standalone.
+> diveo's `services/gsav` (catalog) + `savedScenesStore` + `useGsavFollow` (social)
+> consume it; nothing in diveo hand-rolls catalog/social queries anymore. Verified:
+> tsc/lint/116 tests (+5 social unit tests) + web bundle resolves it + live backend
+> round-trips save/follow under viewer RLS. **Remaining (cross-repo / multi-session,
+> needs gsav-hosting's own env + test loop):** (3) gsav-hosting consumes the package
+> (replace `socialApi.ts` + `api-catalog.ts`; unify the `Video` type so
+> `getVideoSocialState`/`resolveSocialRefs` move into the package too); (4) extract
+> `@opsiclear/gsav-bridge` (the protocol incl. `setSession`); (5) cross-repo CI.
 
 **Goal.** One shared SDK for data + auth + social, consumed by **both**
 gsav-hosting and diveo — replacing the mirrors (diveo's `services/gsav.ts` +
