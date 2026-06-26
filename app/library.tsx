@@ -47,7 +47,7 @@ export default function LibraryScreen() {
         </View>
       ) : saved.length === 0 ? (
         <View style={styles.fill}>
-          <Text style={[styles.msg, { color: theme.textSub }]}>No saved scenes yet. Tap the bookmark on any scene to save it.</Text>
+          <Text style={[styles.msg, { color: theme.textSub }]}>No saved scenes yet.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>

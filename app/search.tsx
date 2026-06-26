@@ -80,9 +80,7 @@ export default function SearchScreen() {
           <Text style={[styles.msg, { color: theme.textSub }]}>No scenes match “{text.trim()}”.</Text>
         </View>
       ) : results.length === 0 ? (
-        <View style={styles.fill}>
-          <Text style={[styles.msg, { color: theme.textSub }]}>Search the diveo catalog by title, author, or tag.</Text>
-        </View>
+        <View style={styles.fill} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.grid}>
